@@ -43,7 +43,7 @@ export default function Navbar({ isAdmin = false, isLoggedIn = false, cartCount 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleLogoutClick = () => {
     const confirmed = window.confirm("Are you sure you want to log out?");
-    if (confirmed && onLogout) onLogout();
+    if (confirmed && onLogout) onLogout(); navigate("/");
   };
 
   const drawerContent = (
