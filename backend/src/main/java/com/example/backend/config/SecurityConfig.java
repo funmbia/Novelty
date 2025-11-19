@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -36,5 +38,13 @@ public class SecurityConfig {
                 .formLogin(Customizer.withDefaults());
 
         return http.build();
+    }
+
+    // This may or may not be temporary
+    // Tells Spring that we are not encoding passwords
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        // Dev / assignment only: compare passwords as plain text
+        return NoOpPasswordEncoder.getInstance();
     }
 }

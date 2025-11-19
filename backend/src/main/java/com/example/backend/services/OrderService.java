@@ -5,10 +5,17 @@ import com.example.backend.dto.OrderItemDto;
 import com.example.backend.dto.BookDto;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -106,6 +113,47 @@ public class OrderService {
 
         orderRepo.delete(order);
     }
+
+    // Get the sales history based on the user, products, and time frame
+    public Page<OrderDto> getSalesHistory(
+            int page,
+            int size,
+            Long customerId,
+            Long productId,
+            LocalDate from,
+            LocalDate to
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (from != null && to != null) {
+            startDateTime = from.atStartOfDay();
+            endDateTime = to.atTime(LocalTime.MAX);
+        }
+
+        Page<Order> ordersPage;
+
+        // Decide which repo method to call based on what filters are provided
+        if (customerId != null && startDateTime != null && productId == null) {
+            ordersPage = orderRepo.findByUser_UserIdAndCreatedAtBetween(customerId, startDateTime, endDateTime, pageable);
+        } else if (customerId != null && productId == null) {
+            ordersPage = orderRepo.findByUser_UserId(customerId, pageable);
+        } else if (productId != null && startDateTime != null) {
+            ordersPage = orderRepo.findByProductAndDateRange(productId, startDateTime, endDateTime, pageable);
+        } else if (productId != null) {
+            ordersPage = orderRepo.findByProduct(productId, pageable);
+        } else if (startDateTime != null) {
+            ordersPage = orderRepo.findByCreatedAtBetween(startDateTime, endDateTime, pageable);
+        } else {
+            // No filters, return all orders
+            ordersPage = orderRepo.findAll(pageable);
+        }
+        return ordersPage.map(this::convertToDto);
+    }
+
+
 
     // Convert Order entity to OrderDto
     private OrderDto convertToDto(Order order) {
