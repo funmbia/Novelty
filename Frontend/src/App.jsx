@@ -9,6 +9,8 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import AccountPage from "./pages/AccountPage";
 import ShoppingCartPage from "./pages/ShoppingCartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderSummaryPage from "./pages/OrderSummarypage";
 function AppContent() {
   const location = useLocation();
   const path = location.pathname;
@@ -61,10 +63,14 @@ function AppContent() {
           <Route path="/sign-up" element={<SignupPage />} />
           <Route path="/orders" element={<p>Orders Page</p>} />
           <Route path="/cart" element={<ShoppingCartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-success/:orderId" element={<OrderSummaryPage />} />
+
 
           <Route path="/admin/inventory" element={<p>Admin Inventory Page</p>} />
           <Route path="/admin/sales" element={<p>Admin Sales Page</p>} />
-          <Route path="/checkout" element={<p>Checkoput page</p>} />
+          
+
 
         </Routes>
       </Box>

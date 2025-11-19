@@ -66,3 +66,12 @@ export const dummyBooks = [
         },
     ];
 
+// Load from localStorage OR default to dummyBooks
+export function getStoredBooks() {
+  const saved = localStorage.getItem("books");
+  return saved ? JSON.parse(saved) : dummyBooks;
+}
+
+export function updateStoredBooks(newBooks) {
+  localStorage.setItem("books", JSON.stringify(newBooks));
+}
