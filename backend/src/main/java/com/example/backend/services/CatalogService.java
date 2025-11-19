@@ -10,6 +10,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+
 /**
  * Service layer for catalog operations.
  * logic for book browsing, searching, and retrieval.
@@ -59,6 +61,30 @@ public class CatalogService {
 
         // Convert entity to DTO before returning
         return convertToDto(book);
+    }
+
+    public BookDto createBook(BookDto bookDto){
+        Book book = new Book();
+        book.setAuthor(bookDto.getAuthor());
+        book.setTitle(bookDto.getTitle());
+        book.setPrice(bookDto.getPrice());
+        book.setDescription(bookDto.getDescription());
+        book.setIsbn(bookDto.getIsbn());
+        book.setImageUrl(bookDto.getImageUrl());
+        book.setQuantity(bookDto.getQuantity());
+        book.setYear(bookDto.getYear());
+        book.setGenres(bookDto.getGenres() != null ? bookDto.getGenres() : new ArrayList<>());
+
+        Book saved = bookRepo.save(book);
+
+        return convertToDto(saved);
+    }
+
+    public void deleteBook(Long id){
+        if (!bookRepo.existsById(id)) {
+            throw new RuntimeException("Book not found with id: " + id);
+        }
+        bookRepo.deleteById(id);
     }
 
 
