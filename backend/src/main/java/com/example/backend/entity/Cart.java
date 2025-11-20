@@ -22,6 +22,8 @@ public class Cart {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> cartItemList = new ArrayList<>();
 
+
+    /*
     // Getters and setters
     public Long getCartId() { return cartId; }
     public void setCartId(Long cartId) { this.cartId = cartId; }
@@ -31,4 +33,6 @@ public class Cart {
 
     public List<CartItem> getCartItemList() { return cartItemList; }
     public void setCartItemList(List<CartItem> cartItemList) { this.cartItemList = cartItemList; }
+
+     */
 }

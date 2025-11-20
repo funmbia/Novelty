@@ -26,7 +26,7 @@ public class OrderItem {
     private int quantity;
 
     private BigDecimal price;
-
+/*
     // Getters and setters
     public Long getOrderItemId() { return orderItemId; }
     public void setOrderItemId(Long orderItemId) { this.orderItemId = orderItemId; }
@@ -42,4 +42,6 @@ public class OrderItem {
 
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+
+ */
 }

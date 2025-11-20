@@ -34,6 +34,7 @@ public class Order {
     @Column(name = "created_at")
     private final LocalDateTime createdAt = LocalDateTime.now();
 
+    /*
     // Getters and setters (no setter for final createdAt)
     public Long getOrderId() { return orderId; }
     public void setOrderId(Long orderId) { this.orderId = orderId; }
@@ -54,4 +55,6 @@ public class Order {
     public void setPayment(Payment payment) { this.payment = payment; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+     */
 }

@@ -39,7 +39,7 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Cart cart;
-
+/*
     // Getters and setters
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
@@ -65,5 +65,5 @@ public class User {
     public Cart getCart() { return cart; }
     public void setCart(Cart cart) { this.cart = cart; }
 
-
+*/
 }

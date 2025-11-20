@@ -22,6 +22,7 @@ public class Address {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /*
     // Getters and setters
     public Long getAddressId() { return addressId; }
     public void setAddressId(Long addressId) { this.addressId = addressId; }
@@ -43,4 +44,6 @@ public class Address {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+     */
 }

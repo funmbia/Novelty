@@ -51,6 +51,7 @@ public class Book {
     @Column(name = "genre")
     private List<String> genres = new ArrayList<>();
 
+    /*
     // getters & setters
     public Long getBookId() { return bookId; }
     public void setBookId(Long bookId) { this.bookId = bookId; }
@@ -73,4 +74,6 @@ public class Book {
     public List<String> getGenres() { return genres; }
     public void setGenres(List<String> genres) { this.genres = genres; }
 
+
+     */
 }

@@ -26,6 +26,7 @@ public class CartItem {
     @Min(1)
     private int quantity;
 
+    /*
     // Getters and setters
     public Long getCartItemId() { return cartItemId; }
     public void setCartItemId(Long cartItemId) { this.cartItemId = cartItemId; }
@@ -38,4 +39,6 @@ public class CartItem {
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+
+     */
 }
