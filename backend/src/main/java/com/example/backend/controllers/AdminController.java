@@ -55,7 +55,7 @@ public class AdminController {
         BookDto createdBook = catalogService.createBook(bookDto);
         return Response.builder()
                 .status(201)
-                .message("User created successfully")
+                .message("Book created successfully")
                 .book(createdBook)
                 .build();
     }
@@ -65,7 +65,7 @@ public class AdminController {
         catalogService.deleteBook(id);
         return Response.builder()
                 .status(200)
-                .message("User deleted successfully")
+                .message("Book deleted successfully")
                 .build();
     }
 
