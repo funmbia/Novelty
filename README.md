@@ -55,8 +55,8 @@
    export DB_PASS="your_bookstore_password"
 
    --Windows CMD (To set permanent variable, use setx instead of set)
-   set DB_USER "123"
-   set DB_USER "123"
+   set DB_USER "your_bookstore_username"
+   set DB_PASS "your_bookstore_password"
    ```
 7. Install Dependencies:
    
