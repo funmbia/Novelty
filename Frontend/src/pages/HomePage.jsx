@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     Grid,
     Typography,
@@ -7,51 +7,72 @@ import {
     CircularProgress,
     Button,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import BookCard from "../components/BookCard";
 import SearchBar from "../components/SearchBar";
-import FilterPanel from "../components/FilterPanel"; 
+import FilterPanel from "../components/FilterPanel";
 import { dummyBooks } from "../data/dummyBooks";
+import { useCart } from "../context/CartContext";
 
 export default function HomePage() {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const queryParams = new URLSearchParams(location.search);
+    const genreFromUrl = queryParams.get("genre") || "All";
+    const { addToCart } = useCart();
     const genres = ["All", ...new Set(dummyBooks.flatMap((b) => b.genres))];
-    const [selectedGenre, setSelectedGenre] = useState("All");
+
+    const [selectedGenre, setSelectedGenre] = useState(genreFromUrl);
+
+    // Sync state when URL changes (user clicks genre in navbar)
+    useEffect(() => {
+        if (location.state?.reset) {
+            // Reset filters + search
+            setSearchQuery("");
+            setSelectedGenre("All");
+            setSortBy("none");
+
+            // Re-fetch all books
+            fetchBooks();
+
+            // Clear reset flag so it doesn't persist on back navigation
+            navigate("/", { replace: true, state: {} });
+            setSelectedGenre(genreFromUrl)
+        }
+    }, [genreFromUrl, location.state]);
+
+    // Search
     const [searchQuery, setSearchQuery] = useState("");
-    const [books, setBooks] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    const [selectedAuthor, setSelectedAuthor] = useState("All");
-    const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+    // Filters
+
     const [sortBy, setSortBy] = useState("none");
-    const [showFilters, setShowFilters] = useState(false);
 
+    // Books
+    const [loading, setLoading] = useState(true);
+    const [books, setBooks] = useState([]);
 
-    const authors = ["All", ...new Set(dummyBooks.map((b) => b.author))];
-
+    // Fetch books (simulated backend)
     const fetchBooks = () => {
         setLoading(true);
+
         setTimeout(() => {
             let filtered = dummyBooks;
 
+            // Genre and search
             if (selectedGenre !== "All" && selectedGenre !== "") {
                 filtered = filtered.filter((b) => b.genres.includes(selectedGenre));
             }
-
-            if (searchQuery.trim() !== "") {
+            else if (searchQuery.trim() !== "") {
                 const q = searchQuery.toLowerCase();
                 filtered = filtered.filter(
                     (b) =>
                         b.title.toLowerCase().includes(q) ||
-                        b.author.toLowerCase().includes(q)
+                        b.author.toLowerCase().includes(q) ||
+                        b.isbn.toLowerCase().includes(q)
                 );
             }
-            if (selectedAuthor !== "All") filtered = filtered.filter((b) => b.author === selectedAuthor);
-            filtered = filtered.filter(
-                (b) => b.price >= priceRange.min && b.price <= priceRange.max
-            );
-
+            // Sort
             if (sortBy === "priceLowHigh") filtered.sort((a, b) => a.price - b.price);
             else if (sortBy === "priceHighLow") filtered.sort((a, b) => b.price - a.price);
             else if (sortBy === "titleAZ") filtered.sort((a, b) => a.title.localeCompare(b.title));
@@ -62,18 +83,29 @@ export default function HomePage() {
         }, 400);
     };
 
+    const handleSearch = () => {
+        navigate("/books", { replace: true });
+        fetchBooks();
+    };
+
+    // Re-run fetch when filters change OR URL genre changes
     useEffect(() => {
         fetchBooks();
-    }, [selectedGenre, searchQuery, selectedAuthor, priceRange, sortBy]);
+    }, [selectedGenre, sortBy]);
 
-    const handleAddToCart = (bookId) => alert(`Book ${bookId} added to cart!`);
-    const handleViewDetails = (bookId) => {
-        navigate(`/book/${bookId}`);
+    useEffect(() => {
+        setSelectedGenre(genreFromUrl);
+    }, [genreFromUrl]);
+
+    const handleAddToCart = (book) => {
+        addToCart(book);
     };
+
+    const handleViewDetails = (bookId) => navigate(`/book/${bookId}`);
 
     return (
         <Box sx={{ width: "100%", p: 2 }}>
-            {/* Search Bar + Show Filters Button */}
+
             <Box
                 sx={{
                     width: "100%",
@@ -81,71 +113,43 @@ export default function HomePage() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     mb: 3,
-                    flexWrap: "wrap", 
-                    gap: 2,           
+                    flexWrap: "wrap",
+                    gap: 2,
                 }}
             >
-                {/* Search section */}
+                {/* Search Bar */}
                 <Box
                     sx={{
                         flexGrow: 1,
-                        minWidth: { xs: "100%", sm: "60%", md: "70%" }, 
+                        minWidth: { xs: "100%", sm: "60%", md: "70%" },
                         display: "flex",
                         justifyContent: "center",
                     }}
                 >
                     <SearchBar
-                        genres={genres}
-                        selectedGenre={selectedGenre}
-                        onGenreChange={setSelectedGenre}
                         searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
-                        onSearchSubmit={fetchBooks}
+                        setSearchQuery={setSearchQuery}
+                        onSearchSubmit={handleSearch}
                     />
                 </Box>
 
-                {/* Show Filters button */}
+                {/* Sort dropdown (FilterPanel) */}
                 <Box
                     sx={{
+                        width: { xs: "100%", sm: "auto" },
                         display: "flex",
                         justifyContent: { xs: "center", sm: "flex-end" },
-                        width: { xs: "100%", sm: "auto" },
                     }}
                 >
-                    <Button
-                        variant="outlined"
-                        onClick={() => setShowFilters((prev) => !prev)}
-                        startIcon={showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                        sx={{
-                            whiteSpace: "nowrap",
-                            px: 2.5,
-                            py: 1,
-                            fontWeight: 500,
-                        }}
-                    >
-                        {showFilters ? "Hide Filters" : "Show Filters"}
-                    </Button>
+                    <FilterPanel sortBy={sortBy} setSortBy={setSortBy} />
                 </Box>
             </Box>
-            {/* Collapsible FilterPanel */}
-            <FilterPanel
-                showFilters={showFilters}
-                authors={authors}
-                selectedAuthor={selectedAuthor}
-                setSelectedAuthor={setSelectedAuthor}
-                priceRange={priceRange}
-                setPriceRange={setPriceRange}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-            />
 
-            {/* Books */}
+
             {loading ? (
                 <Box textAlign="center" mt={5}>
                     <CircularProgress />
-                    <Typography variant="body2" mt={2}>
-                        Loading books...
-                    </Typography>
+                    <Typography variant="body2" mt={2}>Loading books...</Typography>
                 </Box>
             ) : books.length === 0 ? (
                 <Typography
@@ -172,3 +176,4 @@ export default function HomePage() {
         </Box>
     );
 }
+

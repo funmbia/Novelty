@@ -1,8 +1,17 @@
 import React from "react";
-import { Box, TextField, InputAdornment, MenuItem, Select, FormControl } from "@mui/material";
+import {
+  Box,
+  TextField,
+  IconButton,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
-export default function SearchBar({ genres, selectedGenre, onGenreChange, searchQuery, onSearchChange, onSearchSubmit }) {
+export default function SearchBar({
+  searchQuery,
+  setSearchQuery,
+  onSearchSubmit
+}) {
+
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       onSearchSubmit();
@@ -12,57 +21,69 @@ export default function SearchBar({ genres, selectedGenre, onGenreChange, search
   return (
     <Box
       sx={{
-        display: "flex",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        borderRadius: 2,
-        overflow: "hidden",
-        boxShadow: 1,
         width: "100%",
-        maxWidth: 600,
+        display: "flex",
+        justifyContent: "center",
+        mt: 2,
       }}
     >
-      {/* Genre Dropdown */}
-      <FormControl sx={{ minWidth: 130, borderRight: "1px solid #ccc" }}>
-        <Select
-          value={selectedGenre}
-          onChange={(e) => onGenreChange(e.target.value)}
-          sx={{
-            "& .MuiSelect-select": {
-              py: 1.2,
-              pl: 1.5,
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "#fff",
+          borderRadius: "30px",
+          overflow: "hidden",
+          boxShadow: 3,
+          transition: "0.2s ease",
+          width: "100%",
+          maxWidth: { xs: 300, sm: 450, md: 600, lg: 700, xl: 800 },
+          height: { xs: 44, md: 52 },
+        }}
+      >
+        <TextField
+          variant="standard"
+          placeholder="Search by title, author, or ISBN..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyPress}
+          InputProps={{
+            disableUnderline: true,
+            sx: {
+              px: { xs: 1.5, md: 2 },
+              fontSize: { xs: "0.9rem", md: "1.05rem" },
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
             },
           }}
-        >
-          {genres.map((genre) => (
-            <MenuItem key={genre} value={genre}>
-              {genre}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          sx={{
+            flexGrow: 1,
+            backgroundColor: "#fff",
+          }}
+        />
 
-      {/* Search Field */}
-      <TextField
-        variant="standard"
-        placeholder="Search by title, author, or keyword..."
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onKeyDown={handleKeyPress}
-        InputProps={{
-          disableUnderline: true,
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon color="action" />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          flexGrow: 1,
-          px: 1.5,
-          backgroundColor: "#fff",
-        }}
-      />
+        <IconButton
+          onClick={onSearchSubmit}
+          sx={{
+            width: { xs: 48, md: 60 },
+            height: "100%",
+            borderRadius: 0,
+            bgcolor: "#3f51b5",
+            color: "white",
+            transition: "0.25s ease",
+            "&:hover": {
+              bgcolor: "#303f9f",
+              transform: "scale(1.05)",
+            },
+            borderTopRightRadius: "30px",
+            borderBottomRightRadius: "30px",
+          }}
+        >
+          <SearchIcon sx={{ fontSize: { xs: 22, md: 26 } }} />
+        </IconButton>
+      </Box>
     </Box>
   );
 }
+
