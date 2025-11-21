@@ -16,6 +16,7 @@ import AdminSalesPage from "./pages/AdminSalesPage";
 import AdminInventoryPage from "./pages/AdminInventoryPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
 
+
 function AppContent() {
   const location = useLocation();
   const path = location.pathname;
@@ -76,6 +77,7 @@ function AppContent() {
           <Route path="/admin/sales" element={<AdminSalesPage />} />
           <Route path="/admin/customers" element={<AdminCustomersPage />} />
           
+
 
 
         </Routes>
