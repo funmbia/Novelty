@@ -21,16 +21,9 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from "../context/CartContext";
+import { getGenres } from "../api/catalogAPI";
 const drawerWidth = 240;
 
-// simulating api call
-function fetchGenres() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(["Fiction", "Non-Fiction", "Sci-Fi", "History", "Fantasy", "Drama"]);
-    }, 300);
-  });
-}
 
 export default function Navbar({ isAdmin = false, isLoggedIn = false, onLogout }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -41,7 +34,9 @@ export default function Navbar({ isAdmin = false, isLoggedIn = false, onLogout }
   const location = useLocation();
 
   useEffect(() => {
-    fetchGenres().then(setGenres); // simulate async fetch from DB
+    getGenres().then(data => {
+      setGenres(data.genres);
+    });
   }, []);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);

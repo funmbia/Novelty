@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { dummyBooks } from "../data/dummyBooks";
 import {
     Box,
     Typography,
@@ -14,6 +13,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useCart } from "../context/CartContext";
+import { fetchBookById } from "../api/catalogAPI";
 
 export default function BookDetailsPage() {
     const { bookId } = useParams();
@@ -23,8 +23,9 @@ export default function BookDetailsPage() {
     const { addToCart } = useCart();
 
     useEffect(() => {
-        const found = dummyBooks.find((b) => b.bookId === Number(bookId));
-        setBook(found || null);
+        fetchBookById(bookId)
+            .then(res => setBook(res.book))
+            .catch(() => setBook(null));
     }, [bookId]);
 
     if (!book) {

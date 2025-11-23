@@ -1,179 +1,177 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-    Grid,
-    Typography,
-    Box,
-    CircularProgress,
-    Button,
+  Grid,
+  Typography,
+  Box,
+  CircularProgress,
 } from "@mui/material";
 import BookCard from "../components/BookCard";
 import SearchBar from "../components/SearchBar";
 import FilterPanel from "../components/FilterPanel";
-import { dummyBooks } from "../data/dummyBooks";
 import { useCart } from "../context/CartContext";
+import { listBooks, getGenres } from "../api/catalogAPI";
 
 export default function HomePage() {
-    const navigate = useNavigate();
-    const location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { addToCart } = useCart();
 
-    const queryParams = new URLSearchParams(location.search);
-    const genreFromUrl = queryParams.get("genre") || "All";
-    const { addToCart } = useCart();
-    const genres = ["All", ...new Set(dummyBooks.flatMap((b) => b.genres))];
+  // Read genre from URL
+  const urlGenre = new URLSearchParams(location.search).get("genre") || "All";
 
-    const [selectedGenre, setSelectedGenre] = useState(genreFromUrl);
+  // State
+  const [genres, setGenres] = useState(["All"]);
+  const [selectedGenre, setSelectedGenre] = useState(urlGenre);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("none");
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    // Sync state when URL changes (user clicks genre in navbar)
-    useEffect(() => {
-        if (location.state?.reset) {
-            // Reset filters + search
-            setSearchQuery("");
-            setSelectedGenre("All");
-            setSortBy("none");
+  // Backend → UI Sort Mapping
+  const backendSortField = {
+    priceLowHigh: "price",
+    priceHighLow: "price",
+    titleAZ: "title",
+    titleZA: "title",
+    none: "title",
+  };
 
-            // Re-fetch all books
-            fetchBooks();
+  // Load genres once
+  useEffect(() => {
+    getGenres().then((data) => {
+      if (data.genres) {
+        setGenres(["All", ...data.genres]);
+      }
+    });
+  }, []);
 
-            // Clear reset flag so it doesn't persist on back navigation
-            navigate("/", { replace: true, state: {} });
-            setSelectedGenre(genreFromUrl)
+  // Fetch books from backend
+  const fetchBooks = () => {
+    setLoading(true);
+
+    listBooks({
+      page: 0,
+      size: 100,
+      sort: backendSortField[sortBy],
+      search: searchQuery.trim() === "" ? null : searchQuery,
+      genre: selectedGenre === "All" ? null : selectedGenre,
+    })
+      .then((data) => {
+        let result = data.bookList || [];
+
+        // Apply descending sorts (backend always returns ascending)
+        if (sortBy === "priceHighLow") {
+          result = [...result].sort((a, b) => b.price - a.price);
+        } else if (sortBy === "titleZA") {
+          result = [...result].sort((a, b) =>
+            b.title.localeCompare(a.title)
+          );
         }
-    }, [genreFromUrl, location.state]);
 
-    // Search
-    const [searchQuery, setSearchQuery] = useState("");
+        setBooks(result);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error loading books:", err);
+        setLoading(false);
+      });
+  };
 
-    // Filters
+  // Fetch whenever filters change
+  useEffect(() => {
+    fetchBooks();
+  }, [selectedGenre, sortBy]);
 
-    const [sortBy, setSortBy] = useState("none");
+  // Update selected genre if user clicks genre in navbar
+  useEffect(() => {
+    setSelectedGenre(urlGenre);
+  }, [urlGenre]);
 
-    // Books
-    const [loading, setLoading] = useState(true);
-    const [books, setBooks] = useState([]);
+  // Search submit
+  const handleSearch = () => {
+    fetchBooks();
+  };
 
-    // Fetch books (simulated backend)
-    const fetchBooks = () => {
-        setLoading(true);
+  const handleAddToCart = (book) => {
+    addToCart(book);
+  };
 
-        setTimeout(() => {
-            let filtered = dummyBooks;
+  const handleViewDetails = (bookId) => {
+    navigate(`/book/${bookId}`);
+  };
 
-            // Genre and search
-            if (selectedGenre !== "All" && selectedGenre !== "") {
-                filtered = filtered.filter((b) => b.genres.includes(selectedGenre));
-            }
-            else if (searchQuery.trim() !== "") {
-                const q = searchQuery.toLowerCase();
-                filtered = filtered.filter(
-                    (b) =>
-                        b.title.toLowerCase().includes(q) ||
-                        b.author.toLowerCase().includes(q) ||
-                        b.isbn.toLowerCase().includes(q)
-                );
-            }
-            // Sort
-            if (sortBy === "priceLowHigh") filtered.sort((a, b) => a.price - b.price);
-            else if (sortBy === "priceHighLow") filtered.sort((a, b) => b.price - a.price);
-            else if (sortBy === "titleAZ") filtered.sort((a, b) => a.title.localeCompare(b.title));
-            else if (sortBy === "titleZA") filtered.sort((a, b) => b.title.localeCompare(a.title));
+  return (
+    <Box sx={{ width: "100%", p: 2 }}>
 
-            setBooks(filtered);
-            setLoading(false);
-        }, 400);
-    };
-
-    const handleSearch = () => {
-        navigate("/books", { replace: true });
-        fetchBooks();
-    };
-
-    // Re-run fetch when filters change OR URL genre changes
-    useEffect(() => {
-        fetchBooks();
-    }, [selectedGenre, sortBy]);
-
-    useEffect(() => {
-        setSelectedGenre(genreFromUrl);
-    }, [genreFromUrl]);
-
-    const handleAddToCart = (book) => {
-        addToCart(book);
-    };
-
-    const handleViewDetails = (bookId) => navigate(`/book/${bookId}`);
-
-    return (
-        <Box sx={{ width: "100%", p: 2 }}>
-
-            <Box
-                sx={{
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 3,
-                    flexWrap: "wrap",
-                    gap: 2,
-                }}
-            >
-                {/* Search Bar */}
-                <Box
-                    sx={{
-                        flexGrow: 1,
-                        minWidth: { xs: "100%", sm: "60%", md: "70%" },
-                        display: "flex",
-                        justifyContent: "center",
-                    }}
-                >
-                    <SearchBar
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                        onSearchSubmit={handleSearch}
-                    />
-                </Box>
-
-                {/* Sort dropdown (FilterPanel) */}
-                <Box
-                    sx={{
-                        width: { xs: "100%", sm: "auto" },
-                        display: "flex",
-                        justifyContent: { xs: "center", sm: "flex-end" },
-                    }}
-                >
-                    <FilterPanel sortBy={sortBy} setSortBy={setSortBy} />
-                </Box>
-            </Box>
-
-
-            {loading ? (
-                <Box textAlign="center" mt={5}>
-                    <CircularProgress />
-                    <Typography variant="body2" mt={2}>Loading books...</Typography>
-                </Box>
-            ) : books.length === 0 ? (
-                <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    textAlign="center"
-                    mt={4}
-                >
-                    No books found.
-                </Typography>
-            ) : (
-                <Grid container spacing={2} justifyContent="center">
-                    {books.map((book) => (
-                        <Grid item key={book.bookId} xs={12} sm={6} md={3}>
-                            <BookCard
-                                book={book}
-                                onAddToCart={handleAddToCart}
-                                onViewDetails={handleViewDetails}
-                            />
-                        </Grid>
-                    ))}
-                </Grid>
-            )}
+      {/* Search Bar + Sort Dropdown */}
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box
+          sx={{
+            flexGrow: 1,
+            minWidth: { xs: "100%", sm: "60%", md: "70%" },
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <SearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onSearchSubmit={handleSearch}
+          />
         </Box>
-    );
+
+        <Box
+          sx={{
+            width: { xs: "100%", sm: "auto" },
+            display: "flex",
+            justifyContent: { xs: "center", sm: "flex-end" },
+          }}
+        >
+          <FilterPanel sortBy={sortBy} setSortBy={setSortBy} />
+        </Box>
+      </Box>
+
+      {/* Books Grid */}
+      {loading ? (
+        <Box textAlign="center" mt={5}>
+          <CircularProgress />
+          <Typography variant="body2" mt={2}>Loading books...</Typography>
+        </Box>
+      ) : books.length === 0 ? (
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          textAlign="center"
+          mt={4}
+        >
+          No books found.
+        </Typography>
+      ) : (
+        <Grid container spacing={2} justifyContent="center">
+          {books.map((book) => (
+            <Grid item key={book.bookId} xs={12} sm={6} md={3}>
+              <BookCard
+                book={book}
+                onAddToCart={handleAddToCart}
+                onViewDetails={handleViewDetails}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
 }
+
 
