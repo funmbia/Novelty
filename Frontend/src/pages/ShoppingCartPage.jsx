@@ -5,15 +5,16 @@ import {
     Button,
     IconButton,
     Divider,
-    Card,
-    CardContent,
     Paper,
     CardMedia,
+    CardContent
 } from "@mui/material";
+
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -21,7 +22,7 @@ import { useAuth } from "../context/AuthContext";
 export default function ShoppingCartPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    // Get everything from context
+
     const {
         cartItems,
         increaseQty,
@@ -35,7 +36,6 @@ export default function ShoppingCartPage() {
             navigate("/login?next=checkout");
             return;
         }
-
         navigate("/checkout");
     };
 
@@ -62,11 +62,7 @@ export default function ShoppingCartPage() {
                 {/* Header */}
                 <Typography
                     variant="h4"
-                    sx={{
-                        fontWeight: "bold",
-                        mb: 4,
-                        textAlign: "center",
-                    }}
+                    sx={{ fontWeight: "bold", mb: 4, textAlign: "center" }}
                 >
                     Shopping Cart
                 </Typography>
@@ -89,7 +85,7 @@ export default function ShoppingCartPage() {
                         >
                             {cartItems.map((item) => (
                                 <Paper
-                                    key={item.bookId}
+                                    key={item.cartItemId}
                                     elevation={2}
                                     sx={{
                                         display: "flex",
@@ -99,6 +95,7 @@ export default function ShoppingCartPage() {
                                         gap: 2,
                                     }}
                                 >
+                                    {/* IMAGE */}
                                     <CardMedia
                                         component="img"
                                         sx={{
@@ -107,10 +104,11 @@ export default function ShoppingCartPage() {
                                             objectFit: "cover",
                                             borderRadius: "8px",
                                         }}
-                                        image={item.imageUrl}
-                                        alt={item.title}
+                                        image={item.book.imageUrl}
+                                        alt={item.book.title}
                                     />
 
+                                    {/* ITEM INFO */}
                                     <CardContent
                                         sx={{
                                             flexGrow: 1,
@@ -120,7 +118,7 @@ export default function ShoppingCartPage() {
                                             p: 0,
                                         }}
                                     >
-                                        {/* Title + Author */}
+                                        {/* Title + Author + Price */}
                                         <Box>
                                             <Typography
                                                 variant="h6"
@@ -129,7 +127,7 @@ export default function ShoppingCartPage() {
                                                     fontWeight: "bold",
                                                 }}
                                             >
-                                                {item.title}
+                                                {item.book.title}
                                             </Typography>
 
                                             <Typography
@@ -139,7 +137,7 @@ export default function ShoppingCartPage() {
                                                     fontSize: { xs: "0.85rem", md: "1rem" },
                                                 }}
                                             >
-                                                {item.author}
+                                                {item.book.author}
                                             </Typography>
 
                                             <Typography
@@ -149,19 +147,20 @@ export default function ShoppingCartPage() {
                                                     fontSize: { xs: "1rem", md: "1.15rem" },
                                                 }}
                                             >
-                                                Price: <strong>${item.price.toFixed(2)}</strong>
+                                                Price:{" "}
+                                                <strong>${item.book.price.toFixed(2)}</strong>
                                             </Typography>
                                         </Box>
 
                                         {/* Quantity Controls */}
                                         <Box
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                mt: { xs: 1.5, md: 2 },
-                                            }}
+                                            sx={{ display: "flex", alignItems: "center", mt: { xs: 1.5, md: 2 } }}
                                         >
-                                            <IconButton onClick={() => decreaseQty(item.bookId)}>
+                                            <IconButton
+                                                onClick={() =>
+                                                    decreaseQty(item.book.bookId, item.cartItemId)
+                                                }
+                                            >
                                                 <RemoveIcon fontSize="small" />
                                             </IconButton>
 
@@ -175,13 +174,19 @@ export default function ShoppingCartPage() {
                                                 {item.quantity}
                                             </Typography>
 
-                                            <IconButton onClick={() => increaseQty(item.bookId)}>
+                                            <IconButton
+                                                onClick={() =>
+                                                    increaseQty(item.book.bookId, item.cartItemId)
+                                                }
+                                            >
                                                 <AddIcon fontSize="small" />
                                             </IconButton>
 
                                             <IconButton
                                                 color="error"
-                                                onClick={() => removeFromCart(item.bookId)}
+                                                onClick={() =>
+                                                    removeFromCart(item.book.bookId, item.cartItemId)
+                                                }
                                                 sx={{ ml: { xs: 1, md: 2 } }}
                                             >
                                                 <DeleteIcon fontSize="small" />
@@ -194,12 +199,9 @@ export default function ShoppingCartPage() {
 
                         <Divider sx={{ my: 3 }} />
 
-                        {/* TOTAL + BUTTON SECTION */}
+                        {/* TOTAL */}
                         <Box sx={{ textAlign: "right", mb: 2 }}>
-                            <Typography
-                                variant="h5"
-                                sx={{ fontWeight: "bold" }}
-                            >
+                            <Typography variant="h5" sx={{ fontWeight: "bold" }}>
                                 Total: ${cartTotal}
                             </Typography>
                         </Box>
@@ -227,16 +229,6 @@ export default function ShoppingCartPage() {
                                     py: 1.2,
                                     px: 3,
                                     fontSize: { xs: "0.9rem", md: "1rem" },
-                                    borderWidth: "2px",
-                                    borderColor: "#3f51b5",
-                                    color: "#3f51b5",
-                                    transition: "0.2s ease",
-                                    "&:hover": {
-                                        borderColor: "#303f9f",
-                                        color: "#303f9f",
-                                        transform: "scale(1.03)",
-                                        backgroundColor: "transparent",
-                                    },
                                 }}
                             >
                                 Continue Shopping
@@ -251,17 +243,11 @@ export default function ShoppingCartPage() {
                                 sx={{
                                     flexGrow: { xs: 1, sm: 0 },
                                     borderRadius: "20px",
-                                    backgroundColor: "#3f51b5",
                                     textTransform: "none",
                                     fontWeight: "bold",
                                     py: 1.2,
                                     px: 3,
                                     fontSize: { xs: "0.9rem", md: "1rem" },
-                                    transition: "0.2s ease",
-                                    "&:hover": {
-                                        backgroundColor: "#303f9f",
-                                        transform: "scale(1.03)",
-                                    },
                                 }}
                             >
                                 Checkout
@@ -272,6 +258,5 @@ export default function ShoppingCartPage() {
             </Paper>
         </Box>
     );
-
 }
 
