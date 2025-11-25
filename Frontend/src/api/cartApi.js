@@ -1,74 +1,69 @@
 import axios from "axios";
 import API_BASE_URL from "./api";
 
-// Helper
-function authConfig(username, password) {
+function authHeader(authToken) {
   return {
-    auth: {
-      username,
-      password
-    }
+    headers: {
+      Authorization: `Basic ${authToken}`,
+    },
   };
 }
 
-
-export function getCartByUserId(userId, username, password) {
+export function getCartByUserId(userId, authToken) {
   return axios
-    .get(`${API_BASE_URL}/cart/user/${userId}`, authConfig(username, password))
-    .then(res => res.data);
+    .get(`${API_BASE_URL}/cart/user/${userId}`, authHeader(authToken))
+    .then((res) => res.data);
 }
 
-
-export function createCart(userId, username, password) {
+export function createCart(userId, authToken) {
   return axios
-    .post(`${API_BASE_URL}/cart/user/${userId}`, {}, authConfig(username, password))
-    .then(res => res.data);
+    .post(`${API_BASE_URL}/cart/user/${userId}`, {}, authHeader(authToken))
+    .then((res) => res.data);
 }
 
-
-export function addItemToCart(userId, bookId, quantity, username, password) {
+export function addItemToCart(userId, bookId, quantity, authToken) {
   return axios
     .post(
       `${API_BASE_URL}/cart/user/${userId}/items`,
-      null, 
+      null,
       {
-        ...authConfig(username, password),
-        params: { bookId, quantity }
+        ...authHeader(authToken),
+        params: { bookId, quantity },
       }
     )
-    .then(res => res.data);
+    .then((res) => res.data);
 }
+
 
 export function updateCartItemQuantity(
   userId,
   cartItemId,
   quantity,
-  username,
-  password
+  authToken
 ) {
   return axios
     .put(
       `${API_BASE_URL}/cart/user/${userId}/items/${cartItemId}`,
       null,
       {
-        ...authConfig(username, password),
-        params: { quantity }
+        ...authHeader(authToken),
+        params: { quantity },
       }
     )
-    .then(res => res.data);
+    .then((res) => res.data);
 }
 
-export function removeItemFromCart(userId, cartItemId, username, password) {
+export function removeItemFromCart(userId, cartItemId, authToken) {
   return axios
     .delete(
       `${API_BASE_URL}/cart/user/${userId}/items/${cartItemId}`,
-      authConfig(username, password)
+      authHeader(authToken)
     )
-    .then(res => res.data);
+    .then((res) => res.data);
 }
 
-export function clearCart(userId, username, password) {
+export function clearCart(userId, authToken) {
   return axios
-    .delete(`${API_BASE_URL}/cart/user/${userId}`, authConfig(username, password))
-    .then(res => res.data);
+    .delete(`${API_BASE_URL}/cart/user/${userId}`, authHeader(authToken))
+    .then((res) => res.data);
 }

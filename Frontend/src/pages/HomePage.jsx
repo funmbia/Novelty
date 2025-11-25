@@ -28,7 +28,7 @@ export default function HomePage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Backend → UI Sort Mapping
+  // UI Sorting for descending
   const backendSortField = {
     priceLowHigh: "price",
     priceHighLow: "price",
@@ -60,7 +60,7 @@ export default function HomePage() {
       .then((data) => {
         let result = data.bookList || [];
 
-        // Apply descending sorts (backend always returns ascending)
+        // Apply descending sorts
         if (sortBy === "priceHighLow") {
           result = [...result].sort((a, b) => b.price - a.price);
         } else if (sortBy === "titleZA") {

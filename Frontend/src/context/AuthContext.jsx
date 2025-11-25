@@ -5,28 +5,30 @@ import { addItemToCart } from "../api/cartApi";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+  // Load stored user
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
 
+
   const login = async (email, password) => {
     try {
       const res = await loginUser(email, password);
 
+      const authToken = btoa(`${email}:${password}`);
+
       const loggedInUser = {
         ...res.user,
         email,
-        password,
+        authToken,  
       };
 
-      // LOGIN WORKED → SAVE USER
+      // Save user
       setUser(loggedInUser);
       localStorage.setItem("user", JSON.stringify(loggedInUser));
 
-      // -------------------------
-      // MERGE GUEST CART INTO BACKEND
-      // -------------------------
+      // MERGE GUEST CART
       const guestCart = JSON.parse(localStorage.getItem("cart") || "[]");
 
       if (guestCart.length > 0) {
@@ -35,34 +37,35 @@ export function AuthProvider({ children }) {
             loggedInUser.userId,
             item.book.bookId,
             item.quantity,
-            loggedInUser.email,
-            loggedInUser.password
+            loggedInUser.authToken 
           );
         }
 
-        // Remove guest cart
+        // Clear guest cart
         localStorage.removeItem("cart");
 
-        // FORCE CartContext to reload backend cart
+        // Tell CartContext to reload backend cart
         localStorage.setItem("forceReloadCart", "1");
       }
 
       return { success: true };
-
     } catch (err) {
       throw new Error(err.response?.data?.message || "Login failed");
     }
   };
 
+  // REGISTER
   const register = async (form) => {
     const res = await registerUser(form);
 
     if (!res.user) throw new Error("Registration failed");
 
+    const authToken = btoa(`${form.email}:${form.password}`);
+
     const storedUser = {
       ...res.user,
       email: form.email,
-      password: form.password,
+      authToken,
     };
 
     setUser(storedUser);
@@ -71,9 +74,11 @@ export function AuthProvider({ children }) {
     return storedUser;
   };
 
+  // LOGOUT
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("sessionToken");
   };
 
   return (
