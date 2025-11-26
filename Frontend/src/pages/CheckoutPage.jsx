@@ -8,39 +8,35 @@ import {
   Button,
   Alert,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  CircularProgress
 } from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
-// Dummy saved account info
-const dummySavedProfile = {
-  name: "John Doe",
-  address: "123 Maple Street",
-  city: "Toronto",
-  postal: "M3J 1P3",
-  cardNumber: "4242 4242 4242 4242",
-  expiry: "12/28",
-  cvv: "123",
-};
+import { fetchBookById } from "../api/catalogAPI";
 
-// Dummy inventory to validate stock
-const dummyInventory = {
-  1: 5,
-  2: 7,
-  3: 12,
-};
+import { detectCardBrand } from "../utils/validation";
+
+import { getAddressForUser } from "../api/addressApi";
+import { getUserDefaultPaymentMethod } from "../api/paymentApi";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { cartItems, clearCart } = useCart();
 
+  const [loading, setLoading] = useState(true);
+  const [savedAddress, setSavedAddress] = useState(null);
+  const [savedPayment, setSavedPayment] = useState(null);
+
   const [useSavedInfo, setUseSavedInfo] = useState(true);
   const [saveNewInfo, setSaveNewInfo] = useState(false);
   const [error, setError] = useState("");
 
+  // Temporary info (UI only for now)
   const [shipping, setShipping] = useState({
     name: "",
     address: "",
@@ -50,7 +46,8 @@ export default function CheckoutPage() {
 
   const [billing, setBilling] = useState({
     cardNumber: "",
-    expiry: "",
+    expiryMonth: "",
+    expiryYear: "",
     cvv: ""
   });
 
@@ -58,18 +55,57 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!user) {
       navigate("/login", { state: { redirectTo: "/checkout" } });
+      return;
     }
+
+    const loadData = async () => {
+      try {
+        // Load saved address
+        const addrRes = await getAddressForUser(user.userId, user.authToken);
+        if (addrRes.address) {
+          setSavedAddress(addrRes.address);
+        }
+
+        // Load saved default payment method
+        const payRes = await getUserDefaultPaymentMethod(user.userId, user.authToken);
+        if (payRes) {
+          setSavedPayment(payRes);
+        }
+      } catch (err) {
+        console.error("Failed to load checkout info:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [user]);
 
   if (!user) return null;
 
-  // Validate inventory
-  const validateStock = () => {
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+
+  const validateStock = async () => {
     for (const item of cartItems) {
-      const stock = dummyInventory[item.book.bookId] ?? 0;
-      if (item.quantity > stock) {
+      const freshData = await fetchBookById(item.book.bookId);
+      const freshBook = freshData.book;
+
+      if (!freshBook) {
+        setError(`Book "${item.book.title}" no longer exists.`);
+        return false;
+      }
+      console.log(freshBook.quantity)
+      console.log(item.quantity)
+      if (freshBook.quantity < item.quantity) {
         setError(
-          `Not enough stock for ${item.book.title}. Only ${stock} left.`
+          `Not enough stock for "${freshBook.title}". Only ${freshBook.quantity} left.`
         );
         return false;
       }
@@ -77,31 +113,87 @@ export default function CheckoutPage() {
     return true;
   };
 
-  const handlePlaceOrder = () => {
-    if (!validateStock()) return;
+
+  const handlePlaceOrder = async () => {
+    console.log("PLACE ORDER CLICKED");
 
     setError("");
 
-    const finalShipping = useSavedInfo ? dummySavedProfile : shipping;
-    const finalBilling = useSavedInfo ? dummySavedProfile : billing;
+    const ok = await validateStock();
+    console.log("validateStock returned:", ok);
+    if (!ok) return;
 
-    setTimeout(() => {
-      clearCart();
+    // Require saved address & payment for now
+    if (!savedAddress) {
+      setError("No saved address found. Please add one in your Account.");
+      return;
+    }
 
-      const orderId = Math.floor(Math.random() * 900000 + 100000).toString();
+    if (useSavedInfo && !savedPayment) {
+      setError("You must have a saved payment method to use this option.");
+      return;
+    }
 
-      localStorage.setItem(
-        "lastOrder",
-        JSON.stringify({
-          id: orderId,
-          shipping: finalShipping,
-          billing: finalBilling,
-          items: cartItems
-        })
-      );
+    // Build payload
+    let payload = {
+      userId: user.userId,
+      addressId: savedAddress.addressId
+    };
 
-      navigate(`/order-success/${orderId}`);
-    }, 1000);
+    if (useSavedInfo) {
+      payload.paymentMethodId = savedPayment.paymentMethodId;
+    } else {
+      // TEMPORARY PAYMENT ONLY (no temp address yet)
+      payload.temporaryPayment = {
+        cardNumber: billing.cardNumber.replace(/\s+/g, ""),
+        cardBrand: detectCardBrand(billing.cardNumber),
+        cvv: billing.cvv,
+        expiryMonth: billing.expiryMonth,
+        expiryYear: billing.expiryYear,
+        cardholderName: shipping.name
+      };
+      payload.savePaymentMethod = saveNewInfo;
+    }
+
+    try {
+      const res = await fetch("http://localhost:2424/api/orders/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic " + user.authToken
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.status === 200 && data.order) {
+        clearCart();
+        navigate(`/order-success/${data.order.orderId}`, {
+          state: {
+            shipping: useSavedInfo
+              ? {
+                street: savedAddress.street,
+                city: savedAddress.city,
+                postal: savedAddress.postalCode,
+              }
+              : shipping,
+            billing: useSavedInfo
+              ? { last4: savedPayment.cardLast4 }
+              : {
+                last4: billing.cardNumber.slice(-4),
+                expiryMonth: billing.expiryMonth,
+                expiryYear: billing.expiryYear,
+              }
+          }
+        });
+      } else {
+        setError(data.message || "Checkout failed");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong.");
+    }
   };
 
   return (
@@ -124,14 +216,7 @@ export default function CheckoutPage() {
           backgroundColor: "white"
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: "bold",
-            mb: 4,
-            textAlign: "center"
-          }}
-        >
+        <Typography variant="h4" fontWeight="bold" mb={4} textAlign="center">
           Checkout
         </Typography>
 
@@ -150,15 +235,7 @@ export default function CheckoutPage() {
         >
           {/* LEFT COLUMN */}
           <Box>
-            <Paper
-              sx={{
-                p: 3,
-                mb: 3,
-                borderRadius: 3,
-                backgroundColor: "#f8f9fa"
-              }}
-              elevation={1}
-            >
+            <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }} elevation={1}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -170,25 +247,26 @@ export default function CheckoutPage() {
               />
             </Paper>
 
-            {/* Saved Info */}
             {useSavedInfo ? (
               <Paper sx={{ p: 3, borderRadius: 3 }} elevation={2}>
                 <Typography variant="h6">Saved Information</Typography>
                 <Divider sx={{ my: 2 }} />
 
                 <Typography fontWeight="bold">Shipping:</Typography>
-                <Typography>{dummySavedProfile.name}</Typography>
-                <Typography>{dummySavedProfile.address}</Typography>
-                <Typography>{dummySavedProfile.city}</Typography>
-                <Typography>{dummySavedProfile.postal}</Typography>
+                <Typography>{savedAddress.street}</Typography>
+                <Typography>{savedAddress.city}</Typography>
+                <Typography>{savedAddress.postalCode}</Typography>
 
-                <Typography fontWeight="bold" sx={{ mt: 3 }}>
+                <Typography fontWeight="bold" mt={3}>
                   Billing:
                 </Typography>
-                <Typography>Card ending in 4242</Typography>
+                {savedPayment ? (
+                  <Typography>Card ending in {savedPayment.cardLast4}</Typography>
+                ) : (
+                  <Typography color="error">No saved payment method</Typography>
+                )}
               </Paper>
             ) : (
-              // NEW INFO FIELDS
               <Paper sx={{ p: 3, borderRadius: 3 }} elevation={2}>
                 <Typography variant="h6">Shipping Information</Typography>
                 <Divider sx={{ my: 2 }} />
@@ -198,9 +276,7 @@ export default function CheckoutPage() {
                   fullWidth
                   sx={{ mb: 2 }}
                   value={shipping.name}
-                  onChange={(e) =>
-                    setShipping({ ...shipping, name: e.target.value })
-                  }
+                  onChange={(e) => setShipping({ ...shipping, name: e.target.value })}
                 />
 
                 <TextField
@@ -208,9 +284,7 @@ export default function CheckoutPage() {
                   fullWidth
                   sx={{ mb: 2 }}
                   value={shipping.address}
-                  onChange={(e) =>
-                    setShipping({ ...shipping, address: e.target.value })
-                  }
+                  onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
                 />
 
                 <TextField
@@ -218,9 +292,7 @@ export default function CheckoutPage() {
                   fullWidth
                   sx={{ mb: 2 }}
                   value={shipping.city}
-                  onChange={(e) =>
-                    setShipping({ ...shipping, city: e.target.value })
-                  }
+                  onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
                 />
 
                 <TextField
@@ -228,13 +300,10 @@ export default function CheckoutPage() {
                   fullWidth
                   sx={{ mb: 3 }}
                   value={shipping.postal}
-                  onChange={(e) =>
-                    setShipping({ ...shipping, postal: e.target.value })
-                  }
+                  onChange={(e) => setShipping({ ...shipping, postal: e.target.value })}
                 />
 
-                {/* Billing */}
-                <Typography variant="h6" sx={{ mt: 3 }}>
+                <Typography variant="h6" mt={3}>
                   Billing Information
                 </Typography>
                 <Divider sx={{ my: 2 }} />
@@ -250,12 +319,22 @@ export default function CheckoutPage() {
                 />
 
                 <TextField
-                  label="Expiry"
+                  label="Expiry Month (MM)"
                   fullWidth
                   sx={{ mb: 2 }}
-                  value={billing.expiry}
+                  value={billing.expiryMonth}
                   onChange={(e) =>
-                    setBilling({ ...billing, expiry: e.target.value })
+                    setBilling({ ...billing, expiryMonth: e.target.value })
+                  }
+                />
+
+                <TextField
+                  label="Expiry Year (YYYY)"
+                  fullWidth
+                  sx={{ mb: 2 }}
+                  value={billing.expiryYear}
+                  onChange={(e) =>
+                    setBilling({ ...billing, expiryYear: e.target.value })
                   }
                 />
 
@@ -276,7 +355,7 @@ export default function CheckoutPage() {
                       onChange={(e) => setSaveNewInfo(e.target.checked)}
                     />
                   }
-                  label="Save this information to my account"
+                  label="Save this payment method"
                 />
               </Paper>
             )}
@@ -312,10 +391,7 @@ export default function CheckoutPage() {
               >
                 Total: $
                 {cartItems
-                  .reduce(
-                    (sum, item) => sum + item.book.price * item.quantity,
-                    0
-                  )
+                  .reduce((sum, item) => sum + item.book.price * item.quantity, 0)
                   .toFixed(2)}
               </Typography>
             </Paper>
@@ -342,6 +418,5 @@ export default function CheckoutPage() {
     </Box>
   );
 }
-
 
 
