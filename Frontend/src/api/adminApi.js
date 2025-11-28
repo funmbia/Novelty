@@ -1,8 +1,16 @@
 import axios from "axios";
 import { API_ADMIN_BASE_URL } from "./api";
+import API_BASE_URL from "./api"; // check for non admin functions in other files after merging
 
-// non-admin calls, check if in other apis after merging
-import API_BASE_URL from "./api";
+
+function authHeader(authToken) {
+  return {
+    headers: {
+      Authorization: `Basic ${authToken}`,
+    },
+  };
+}
+
 export function getAllBooks() {
   return axios
     .get(`${API_BASE_URL}/catalog/books`) 
@@ -13,15 +21,6 @@ export function getAllCustomers() {
   return axios
     .get(`${API_BASE_URL}/users`) 
     .then((res) => res.data);
-}
-
-// -----
-function authHeader(authToken) {
-  return {
-    headers: {
-      Authorization: `Basic ${authToken}`,
-    },
-  };
 }
 
 export function createBook(authToken, body) {
