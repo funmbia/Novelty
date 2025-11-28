@@ -18,6 +18,7 @@ import AdminInventoryPage from "./pages/AdminInventoryPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
 import AdminEditCustomerPage from "./pages/AdminEditCustomerPage";
 
+import OrderDetailsPage from "./pages/OrderDetails";
 
 function AppContent() {
   const location = useLocation();
@@ -44,11 +45,10 @@ function AppContent() {
         component="main"
         sx={{
           flexGrow: 1,
-          width: "100vw",
-          minHeight: "100vh",
-          backgroundColor: isAuthPage ? "#ffffff" : "inherit",
           p: isAuthPage ? 0 : 3,
           ml: isAuthPage ? 0 : { xs: "0px", sm: "240px" },
+          backgroundColor: isAuthPage ? "#ffffff" : "inherit",
+          minHeight: "100vh",
         }}
       >
         {!isAuthPage && <Toolbar />}
@@ -62,6 +62,7 @@ function AppContent() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/sign-up" element={<SignupPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
           <Route path="/cart" element={<ShoppingCartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-success/:orderId" element={<OrderSummaryPage />} />

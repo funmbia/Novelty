@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -6,16 +6,55 @@ import {
   Button,
   Divider,
   Grid,
+  CircularProgress,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useEffect, useState } from "react";
+import { getUserOrderById } from "../api/orderApi";
+import { useAuth } from "../context/AuthContext";
 
 export default function OrderSummaryPage() {
   const { orderId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+ const { user } = useAuth();
+  const passed = location.state; // shipping + billing from checkout
 
-  const order = JSON.parse(localStorage.getItem("lastOrder"));
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!order || order.id !== orderId) {
+  // Fetch real order from backend
+  useEffect(() => {
+  if (!user) return;
+
+  async function loadOrder() {
+    try {
+      const data = await getUserOrderById(orderId, user.authToken);
+      if (data.order) {
+        setOrder(data.order);
+      } else {
+        setError("Order not found");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch order");
+    }finally {
+      setLoading(false); 
+    }
+  }
+
+  loadOrder();
+}, [orderId, user]);
+
+  if (loading) {
+    return (
+      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!order) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
         <Typography variant="h6">Order not found.</Typography>
@@ -30,9 +69,9 @@ export default function OrderSummaryPage() {
     );
   }
 
-  const total = order.items
-    .reduce((sum, item) => sum + item.quantity * item.price, 0)
-    .toFixed(2);
+  // Shipping & billing passed from checkout
+  const shipping = passed?.shipping;
+  const billing = passed?.billing;
 
   return (
     <Box
@@ -42,7 +81,7 @@ export default function OrderSummaryPage() {
         width: "100%",
         px: { xs: 2, md: 6 },
         py: 4,
-         ml: { sm: "240px" },  
+        ml: { sm: "240px" },
       }}
     >
       <Paper
@@ -66,9 +105,9 @@ export default function OrderSummaryPage() {
           </Typography>
         </Box>
 
-        {/* Order Summary Card */}
+        {/* Order Summary */}
         <Typography variant="h5" sx={{ mb: 1, fontWeight: "bold" }}>
-          Order #{order.id}
+          Order #{order.orderId}
         </Typography>
 
         <Divider sx={{ my: 2 }} />
@@ -76,53 +115,60 @@ export default function OrderSummaryPage() {
         <Grid container spacing={4}>
           {/* SHIPPING INFO */}
           <Grid item xs={12} md={6}>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", mb: 1 }}
-            >
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
               Shipping Information
             </Typography>
 
-            <Typography>{order.shipping.name}</Typography>
-            <Typography>{order.shipping.address}</Typography>
-            <Typography>{order.shipping.city}</Typography>
-            <Typography>{order.shipping.postal}</Typography>
+            {shipping ? (
+              <>
+                <Typography>{shipping.street}</Typography>
+                <Typography>{shipping.city}</Typography>
+                <Typography>{shipping.postal}</Typography>
+              </>
+            ) : (
+              <Typography sx={{ fontStyle: "italic" }}>
+                Shipping details unavailable
+              </Typography>
+            )}
           </Grid>
 
           {/* PAYMENT INFO */}
           <Grid item xs={12} md={6}>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", mb: 1 }}
-            >
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
               Payment Details
             </Typography>
 
-            <Typography>Card ending in 4242</Typography>
-            <Typography>Expiry: {order.billing.expiry}</Typography>
+            {billing ? (
+              <>
+                <Typography>Card ending in {billing.last4}</Typography>
+
+                {billing.expiryMonth && (
+                  <Typography>
+                    Exp: {billing.expiryMonth}/{billing.expiryYear}
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <Typography sx={{ fontStyle: "italic" }}>
+                Payment details unavailable
+              </Typography>
+            )}
           </Grid>
         </Grid>
 
-        {/* ITEMS LIST */}
-        <Typography
-          variant="h6"
-          sx={{ mt: 4, mb: 1, fontWeight: "bold" }}
-        >
+        {/* ITEMS */}
+        <Typography variant="h6" sx={{ mt: 4, mb: 1, fontWeight: "bold" }}>
           Books Purchased
         </Typography>
 
         <Divider sx={{ mb: 2 }} />
 
-        {order.items.map((item) => (
+        {order.orderItemList.map((item) => (
           <Box
-            key={item.bookId}
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              mb: 1,
-            }}
+            key={item.orderItemId}
+            sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
           >
-            <Typography>{item.title}</Typography>
+            <Typography>{item.book.title}</Typography>
             <Typography>
               {item.quantity} × ${item.price.toFixed(2)}
             </Typography>
@@ -132,11 +178,8 @@ export default function OrderSummaryPage() {
         <Divider sx={{ my: 3 }} />
 
         {/* TOTAL */}
-        <Typography
-          variant="h5"
-          sx={{ textAlign: "right", fontWeight: "bold" }}
-        >
-          Total: ${total}
+        <Typography variant="h5" sx={{ textAlign: "right", fontWeight: "bold" }}>
+          Total: ${order.totalPrice.toFixed(2)}
         </Typography>
 
         {/* ACTION BUTTONS */}
@@ -196,4 +239,3 @@ export default function OrderSummaryPage() {
     </Box>
   );
 }
-
