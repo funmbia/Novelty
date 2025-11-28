@@ -21,16 +21,10 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from "../context/CartContext";
+import { getGenres } from "../api/catalogAPI";
+import { useAuth } from "../context/AuthContext";
 const drawerWidth = 240;
 
-// simulating api call
-function fetchGenres() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(["Fiction", "Non-Fiction", "Sci-Fi", "History", "Fantasy", "Drama"]);
-    }, 300);
-  });
-}
 
 export default function Navbar({ isAdmin = false, isLoggedIn = false, onLogout }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -38,10 +32,13 @@ export default function Navbar({ isAdmin = false, isLoggedIn = false, onLogout }
   const [openGenres, setOpenGenres] = React.useState(false);
   const { cartCount } = useCart();
   const navigate = useNavigate();
+  const { user } =useAuth();
   const location = useLocation();
 
   useEffect(() => {
-    fetchGenres().then(setGenres); // simulate async fetch from DB
+    getGenres().then(data => {
+      setGenres(data.genres);
+    });
   }, []);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -158,25 +155,39 @@ export default function Navbar({ isAdmin = false, isLoggedIn = false, onLogout }
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: '#283593',
-        }}
+  sx={{
+    zIndex: (theme) => theme.zIndex.drawer + 1,
+    backgroundColor: '#283593',
+  }}
+>
+  <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+      
+    {/* Left Side */}
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <IconButton 
+        color="inherit" 
+        edge="start"
+        onClick={handleDrawerToggle}
+        sx={{ mr: 2, display: { sm: 'none' } }}
       >
-        <Toolbar>
-          <IconButton color="inherit" edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+        <MenuIcon />
+      </IconButton>
 
-          <MenuBookIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" noWrap>
-            BookStore
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <MenuBookIcon sx={{ mr: 1 }} />
+      <Typography variant="h6" noWrap>
+        BookStore
+      </Typography>
+    </Box>
+
+    {/* Right Side – Welcome User */}
+    {user && (
+      <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+        Hello, <strong>{user.firstName}</strong>
+      </Typography>
+    )}
+
+  </Toolbar>
+</AppBar>
 
       {/* Mobile Drawer */}
       <Drawer

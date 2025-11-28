@@ -15,7 +15,7 @@ import OrdersPage from "./pages/OrdersPage";
 import AdminSalesPage from "./pages/AdminSalesPage";
 import AdminInventoryPage from "./pages/AdminInventoryPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
-
+import OrderDetailsPage from "./pages/OrderDetails";
 
 function AppContent() {
   const location = useLocation();
@@ -29,35 +29,27 @@ function AppContent() {
 
   return (
     <>
-      {/* {
-      !isAuthPage && (
+
+      {/* show navbar always for now */}
+      {!isAuthPage && (
         <Navbar
           onLogout={logout}
           isLoggedIn={!!user}
           isAdmin={user?.isAdmin}
-          cartCount={cartCount}
         />
-      )} */}
-
-      {/* show navbar always for now */}
-      <Navbar
-        onLogout={logout}
-        isLoggedIn={!!user}
-        isAdmin={user?.isAdmin}
-      />
+      )}
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: !isAuthPage ? 3 : 0,
-          ml: !isAuthPage ? { sm: "240px" } : 0,
+          p: isAuthPage ? 0 : 3,
+          ml: isAuthPage ? 0 : { xs: "0px", sm: "240px" },
           backgroundColor: isAuthPage ? "#ffffff" : "inherit",
           minHeight: "100vh",
         }}
       >
-        {/* {!isAuthPage && <Toolbar />} */}
-        <Toolbar />
+        {!isAuthPage && <Toolbar />}
 
         {/* Define paths for pages */}
         <Routes>
@@ -67,7 +59,8 @@ function AppContent() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/sign-up" element={<SignupPage />} />
-          <Route path="/orders" element={<OrdersPage/>} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
           <Route path="/cart" element={<ShoppingCartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-success/:orderId" element={<OrderSummaryPage />} />
@@ -76,7 +69,8 @@ function AppContent() {
           <Route path="/admin/inventory" element={<AdminInventoryPage />} />
           <Route path="/admin/sales" element={<AdminSalesPage />} />
           <Route path="/admin/customers" element={<AdminCustomersPage />} />
-          
+ 
+
 
 
 
