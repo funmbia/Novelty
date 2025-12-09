@@ -1,35 +1,58 @@
-import * as React from 'react';
+import { useEffect } from 'react';
+import React from 'react';
 import {
   AppBar, Toolbar, CssBaseline, Drawer, IconButton, Typography,
-  List, ListItemButton, ListItemIcon, ListItemText, Divider, Box, Badge, Menu, MenuItem
+  List, ListItemButton, ListItemIcon, ListItemText, Divider, Box, Badge,
+  Collapse
 } from '@mui/material';
+
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import { useNavigate, useLocation } from 'react-router-dom';
+import GroupIcon from '@mui/icons-material/Group';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCart } from "../context/CartContext";
+import { getGenres } from "../api/catalogAPI";
+import { useAuth } from "../context/AuthContext";
 const drawerWidth = 240;
 
-export default function Navbar({
-  isAdmin = false,
-  isLoggedIn = false,
-  cartCount = 0,
-  onLogout
-}) {
+export default function Navbar() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [genres, setGenres] = React.useState([]);
+  const [openGenres, setOpenGenres] = React.useState(false);
+
+  const { cartCount } = useCart();
+  const { user, logout } = useAuth();                
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isLoggedIn = !!user;
+  const isAdmin = user?.admin === true;             
+
+  useEffect(() => {
+    getGenres().then(data => {
+      setGenres(data.genres);
+    });
+  }, []);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleLogoutClick = () => {
     const confirmed = window.confirm("Are you sure you want to log out?");
-    if (confirmed && onLogout) onLogout(); navigate("/");
+    if (confirmed) {
+      logout();                                      
+      navigate("/");
+    }
   };
 
   const drawerContent = (
@@ -40,16 +63,36 @@ export default function Navbar({
       <Divider />
 
       <List>
-        {/* Home */}
         <ListItemButton
           selected={location.pathname === '/'}
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/', { state: { reset: true } })}
         >
           <ListItemIcon><HomeIcon /></ListItemIcon>
           <ListItemText primary="Home" />
         </ListItemButton>
 
-        {/* Account Section */}
+        {/* GENRES COLLAPSIBLE SECTION */}
+        <ListItemButton onClick={() => setOpenGenres(!openGenres)}>
+          <ListItemIcon><MenuBookIcon /></ListItemIcon>
+          <ListItemText primary="Genres" />
+          {openGenres ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </ListItemButton>
+
+        <Collapse in={openGenres} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {genres.map((g) => (
+              <ListItemButton
+                key={g}
+                sx={{ pl: 4 }}
+                onClick={() => navigate(`/books?genre=${encodeURIComponent(g)}`)}
+              >
+                <ListItemText primary={g} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Collapse>
+
+        {/* ACCOUNT SECTION */}
         {isLoggedIn ? (
           <>
             <ListItemButton onClick={() => navigate('/account')}>
@@ -58,7 +101,7 @@ export default function Navbar({
             </ListItemButton>
 
             <ListItemButton onClick={() => navigate('/orders')}>
-              <ListItemIcon><MenuBookIcon /></ListItemIcon>
+              <ListItemIcon><ListAltIcon /></ListItemIcon>
               <ListItemText primary="My Orders" />
             </ListItemButton>
           </>
@@ -69,7 +112,7 @@ export default function Navbar({
           </ListItemButton>
         )}
 
-        {/* Cart */}
+        {/* CART */}
         <ListItemButton onClick={() => navigate('/cart')}>
           <ListItemIcon>
             <Badge badgeContent={cartCount} color="secondary">
@@ -81,20 +124,26 @@ export default function Navbar({
 
         <Divider sx={{ my: 1 }} />
 
-        {/* Admin-only section */}
+        {/* ADMIN-ONLY SECTION */}
         {isAdmin && (
           <>
             <Typography variant="subtitle2" sx={{ px: 2, mt: 1, fontWeight: 500 }}>
               Admin
             </Typography>
+
             <ListItemButton onClick={() => navigate('/admin/inventory')}>
               <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
-              <ListItemText primary="Manage Inventory" />
+              <ListItemText primary="Maintain Inventory" />
             </ListItemButton>
 
             <ListItemButton onClick={() => navigate('/admin/sales')}>
-              <ListItemIcon><MenuBookIcon /></ListItemIcon>
+              <ListItemIcon><BarChartIcon /></ListItemIcon>
               <ListItemText primary="Sales History" />
+            </ListItemButton>
+
+            <ListItemButton onClick={() => navigate('/admin/customers')}>
+              <ListItemIcon><GroupIcon /></ListItemIcon>
+              <ListItemText primary="Manage Customers" />
             </ListItemButton>
           </>
         )}
@@ -117,31 +166,42 @@ export default function Navbar({
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: '#283593'  
-        }}
+      <AppBar position="fixed"
+  sx={{
+    zIndex: (theme) => theme.zIndex.drawer + 1,
+    backgroundColor: '#283593',
+  }}
+>
+  <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+      
+    {/* Left Side */}
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <IconButton 
+        color="inherit" 
+        edge="start"
+        onClick={handleDrawerToggle}
+        sx={{ mr: 2, display: { sm: 'none' } }}
       >
-        <Toolbar>
-          {/* Menu button for mobile */}
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <MenuBookIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" noWrap component="div">
-            BookStore
-          </Typography>
-        </Toolbar>
-      </AppBar>
+        <MenuIcon />
+      </IconButton>
 
-      {/* Mobile Drawer */}
+      <MenuBookIcon sx={{ mr: 1 }} />
+      <Typography variant="h6" noWrap>
+        BookStore
+      </Typography>
+    </Box>
+
+    {/* Right Side – Welcome User */}
+    {user && (
+      <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+        Hello, <strong>{user.firstName}</strong>
+      </Typography>
+    )}
+
+  </Toolbar>
+</AppBar>
+
+      {/* MOBILE DRAWER */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -155,7 +215,7 @@ export default function Navbar({
         {drawerContent}
       </Drawer>
 
-      {/* Desktop Drawer */}
+      {/* DESKTOP DRAWER */}
       <Drawer
         variant="permanent"
         sx={{

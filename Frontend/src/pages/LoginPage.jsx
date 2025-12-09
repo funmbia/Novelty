@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
+  const next = new URLSearchParams(location.search).get("next");
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -25,24 +25,24 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await login(form.email, form.password);
-      navigate("/account");
+      navigate(next ? `/${next}` : "/");
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "90vh",
-        ml: { sm: "240px" }, // for navbar, change if that changes - also in SignupPage
-        pt: { xs: "80px", sm: "64px" }, 
-        px: 2,
-      }}
-    >
+<Box
+  sx={{
+    minHeight: "100vh",
+    width: "100vw",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fafafa",
+    overflowX: "hidden" 
+  }}
+>
       <Container maxWidth="xs">
         <Paper
           elevation={3}

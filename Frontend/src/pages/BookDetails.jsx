@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { dummyBooks } from "../data/dummyBooks";
 import {
     Box,
     Typography,
@@ -13,15 +12,20 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { useCart } from "../context/CartContext";
+import { fetchBookById } from "../api/catalogAPI";
 
 export default function BookDetailsPage() {
     const { bookId } = useParams();
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
+    const [qty, setQty] = useState(1);
+    const { addToCart } = useCart();
 
     useEffect(() => {
-        const found = dummyBooks.find((b) => b.bookId === Number(bookId));
-        setBook(found || null);
+        fetchBookById(bookId)
+            .then(res => setBook(res.book))
+            .catch(() => setBook(null));
     }, [bookId]);
 
     if (!book) {
@@ -36,6 +40,10 @@ export default function BookDetailsPage() {
             </Box>
         );
     }
+
+    const increaseQty = () => setQty(qty + 1);
+    const decreaseQty = () => setQty(Math.max(1, qty - 1));
+
 
     // Determine stock status
     const renderStockStatus = (quantity) => {
@@ -61,6 +69,10 @@ export default function BookDetailsPage() {
                 </Box>
             );
         }
+    };
+
+    const handleAddToCart = (book) => {
+        addToCart(book);
     };
 
     return (
@@ -95,7 +107,23 @@ export default function BookDetailsPage() {
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                             Year: {book.year}
                         </Typography>
-
+                        {/* Genres */}
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
+                            {book.genres.map((g) => (
+                                <Box
+                                    key={g}
+                                    sx={{
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: "20px",
+                                        backgroundColor: "#e0e0e0",
+                                        fontSize: "0.85rem",
+                                    }}
+                                >
+                                    {g}
+                                </Box>
+                            ))}
+                        </Box>
                         <Typography variant="body1" sx={{ my: 2 }}>
                             {book.description}
                         </Typography>
@@ -108,31 +136,100 @@ export default function BookDetailsPage() {
                         {/* Dynamic Stock Indicator */}
                         {renderStockStatus(book.quantity)}
 
+                        {/* Quantity selector */}
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                            <Button
+                                variant="outlined"
+                                onClick={decreaseQty}
+                                sx={{
+                                    minWidth: 40,
+                                    fontSize: "1.2rem",
+                                    borderRadius: "50%",
+                                }}
+                            >
+                                –
+                            </Button>
+
+                            <Typography sx={{ mx: 2, fontSize: "1.2rem", width: "30px", textAlign: "center" }}>
+                                {qty}
+                            </Typography>
+
+                            <Button
+                                variant="outlined"
+                                onClick={increaseQty}
+                                sx={{
+                                    minWidth: 40,
+                                    fontSize: "1.2rem",
+                                    borderRadius: "50%",
+                                }}
+                            >
+                                +
+                            </Button>
+                        </Box>
+
+                        {/* Action buttons */}
                         <Box
                             sx={{
                                 display: "flex",
                                 flexWrap: { xs: "wrap", sm: "nowrap" },
-                                gap: { xs: 2, sm: 1 },  
+                                gap: { xs: 2, sm: 2 },
                             }}
                         >
+                            {/* Add to Cart */}
                             <Button
                                 variant="contained"
                                 size="large"
-                                sx={{ flexGrow: { xs: 1, sm: 0 } }}
+                                onClick={() => addToCart(book, qty)}
                                 disabled={book.quantity === 0}
-                                onClick={() => alert("Added to cart!")}
+                                sx={{
+                                    flexGrow: { xs: 1, sm: 0 },
+                                    borderRadius: "20px",
+                                    backgroundColor: "#3f51b5",
+                                    color: "white",
+                                    textTransform: "none",
+                                    fontWeight: "bold",
+                                    py: 1.4,
+                                    px: 3,
+                                    fontSize: "1rem",
+                                    transition: "0.2s ease",
+                                    "&:hover": {
+                                        backgroundColor: "#303f9f",
+                                        transform: "scale(1.03)",
+                                    },
+                                }}
                             >
-                                ADD TO CART
+                                Add {qty} to Cart
                             </Button>
+
+                            {/* Back to Catalog */}
                             <Button
                                 variant="outlined"
                                 size="large"
-                                sx={{ flexGrow: { xs: 1, sm: 0 } }}
                                 onClick={() => navigate("/")}
+                                sx={{
+                                    flexGrow: { xs: 1, sm: 0 },
+                                    borderRadius: "20px",
+                                    textTransform: "none",
+                                    fontWeight: "bold",
+                                    py: 1.4,
+                                    px: 3,
+                                    fontSize: "1rem",
+                                    borderWidth: "2px",
+                                    borderColor: "#3f51b5",
+                                    color: "#3f51b5",
+                                    transition: "0.2s ease",
+                                    "&:hover": {
+                                        borderColor: "#303f9f",
+                                        color: "#303f9f",
+                                        transform: "scale(1.03)",
+                                    },
+                                }}
                             >
-                                BACK TO CATALOG
+                                Back to Catalog
                             </Button>
                         </Box>
+
+
                     </CardContent>
                 </Grid>
             </Grid>
