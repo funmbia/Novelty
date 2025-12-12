@@ -301,6 +301,21 @@ export default function AdminSalesPage() {
         </Typography>
       </Box>
 
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4, mb:2 }}>
+          <Pagination 
+            count={totalPages} 
+            page={page + 1} 
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
+
       {/* Table */}
       <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
         <Table>
@@ -346,21 +361,6 @@ export default function AdminSalesPage() {
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <Pagination 
-            count={totalPages} 
-            page={page + 1} 
-            onChange={handlePageChange}
-            color="primary"
-            size="large"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      )}
 
       {/* Order Details Modal */}
       {selectedOrder && (

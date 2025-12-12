@@ -182,6 +182,21 @@ export default function AdminCustomersPage() {
         </Typography>
       </Box>
 
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 1, mb:2 }}>
+          <Pagination 
+            count={totalPages} 
+            page={page + 1} 
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
+
       {/* CUSTOMERS TABLE */}
       <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
         <Table sx={{ minWidth: 650 }}>
@@ -233,21 +248,6 @@ export default function AdminCustomersPage() {
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <Pagination 
-            count={totalPages} 
-            page={page + 1} 
-            onChange={handlePageChange}
-            color="primary"
-            size="large"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      )}
 
       {/* ------------ PURCHASE HISTORY MODAL ------------ */}
       {purchaseHistory && (

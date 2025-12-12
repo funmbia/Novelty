@@ -12,38 +12,10 @@ function authHeader(authToken) {
 
 
 //------------ BOOKS ------------
-export async function getAllBooks() { //paginated
-  try {
-    const first = await axios
-      .get(`${API_BASE_URL}/catalog/books`, { params: { page: 0, size: 100 } })
-      .then(res => res.data);
-
-    const totalPages = first.totalPage;
-    const results = [...first.bookList];
-
-    // fetch remaining pages if any in parallel
-    if (totalPages > 1) {
-      const requests = [];
-
-      for (let p = 1; p < totalPages; p++) {
-        requests.push(
-          axios
-            .get(`${API_BASE_URL}/catalog/books`, {
-              params: { page: p, size: 100 }
-            })
-            .then(res => res.data.bookList)
-        );
-      }
-
-      const pages = await Promise.all(requests);
-      pages.forEach(list => results.push(...list));
-    }
-
-    return results; //returns a list
-  } catch (err) {
-    console.error("Error fetching all books:", err);
-    throw err;
-  }
+export function getBookById(bookId) {
+  return axios
+    .get(`${API_BASE_URL}/catalog/books/${bookId}`)
+    .then((res) => res.data.book);
 }
 
 export function createBook(authToken, body) {
