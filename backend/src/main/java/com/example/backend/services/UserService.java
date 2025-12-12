@@ -1,6 +1,7 @@
 package com.example.backend.services;
 
 import com.example.backend.dto.UserDto;
+import com.example.backend.entity.Cart;
 import com.example.backend.entity.Order;
 import com.example.backend.entity.User;
 import com.example.backend.repository.OrderRepo;
@@ -90,14 +91,36 @@ public class UserService {
             orderRepo.saveAll(userOrders);
         }
 
-        // Clear collections to help with cascade delete
-        user.getAddressList().clear();
-        user.getPaymentMethods().clear();
-        if (user.getCart() != null) {
+        // Clear the orders list after nullifying references
+        user.getOrders().clear();
+
+        // Clear addresses - cascade will delete them
+        if (user.getAddressList() != null) {
+            user.getAddressList().clear();
+        }
+
+        // Clear payment methods - cascade will delete them
+        if (user.getPaymentMethods() != null) {
+            user.getPaymentMethods().clear();
+        }
+
+        // Cart requires special handling because Cart owns the relationship
+        // We need to clear cart items first, then nullify the relationship
+        Cart cart = user.getCart();
+        if (cart != null) {
+            // Clear cart items (cascade will handle deletion)
+            if (cart.getCartItemList() != null) {
+                cart.getCartItemList().clear();
+            }
+            // Break the bidirectional link
+            cart.setUser(null);
             user.setCart(null);
         }
 
-        // Now delete the user - cascade will handle related entities
+        // Save to persist the cleared relationships
+        userRepo.save(user);
+
+        // Now delete the user
         userRepo.delete(user);
     }
 
