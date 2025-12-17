@@ -53,7 +53,7 @@ export default function AdminInventoryPage() {
 
   // page states
   const [page, setPage] = useState(0);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(100);
   const [loading, setLoading] = useState(false);
   
   // computed values
@@ -124,7 +124,7 @@ export default function AdminInventoryPage() {
       setPage(0);
       setActiveSearch({ type: "bookId", value: searchBookId.trim() });
       
-      // Clear filters AFTER setting active search to prevent useEffect interference
+      // Clear filters 
       setSelectedGenres([]);
       setSortBy("title");
     } catch (err) {
@@ -134,7 +134,6 @@ export default function AdminInventoryPage() {
       setTotalBooks(0);
       setTotalPages(0);
       
-      // Clear filters even on error
       setSelectedGenres([]);
       setSortBy("title");
     } finally {
@@ -149,7 +148,6 @@ export default function AdminInventoryPage() {
       return;
     }
 
-    // Clear all filters when searching
     setSelectedGenres([]);
     setSortBy("title");
 
@@ -281,6 +279,7 @@ export default function AdminInventoryPage() {
     }
   }
 
+
   return (
     <Box sx={{ ml: 0, px: { xs: 2, md: 5 }, py: 4 }}>
       <Typography variant="h4" sx={{ mb: 4, fontWeight: "bold", textAlign: "center" }}>
@@ -292,7 +291,7 @@ export default function AdminInventoryPage() {
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>Search</Typography>
         
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mb: 2 }}>
-          {/* Book ID Search */}
+          {/* book ID search */}
           <Box>
             <TextField 
               label="Book ID" 
@@ -314,7 +313,7 @@ export default function AdminInventoryPage() {
             </Button>
           </Box>
 
-          {/* Title/Author Search */}
+          {/* title/author Search */}
           <Box>
             <TextField 
               label="Title / Author" 
@@ -363,7 +362,7 @@ export default function AdminInventoryPage() {
         )}
       </Paper>
 
-      {/* COMPACT FILTER & SORT BAR */}
+      {/* FILTER & SORT BAR */}
       <Box sx={{ 
         display: "flex", 
         justifyContent: "center", 
@@ -423,7 +422,7 @@ export default function AdminInventoryPage() {
         )}
       </Box>
 
-      {/* Active Filters Display */}
+      {/* active filters display */}
       {hasActiveFilters && (
         <Box sx={{ 
           display: "flex", 
