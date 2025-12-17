@@ -45,7 +45,7 @@ export default function ShoppingCartPage() {
                 display: "flex",
                 justifyContent: "center",
                 width: "100%",
-                px: { xs: 2, md: 30, lg: 50 },
+                px: { xs: 1, sm: 2, md: 30, lg: 50 },
                 py: 4,
             }}
         >
@@ -89,6 +89,7 @@ export default function ShoppingCartPage() {
                                     elevation={2}
                                     sx={{
                                         display: "flex",
+                                        flexWrap: { xs: "wrap", sm: "nowrap" },
                                         p: 2,
                                         borderRadius: 3,
                                         alignItems: "flex-start",
@@ -99,8 +100,8 @@ export default function ShoppingCartPage() {
                                     <CardMedia
                                         component="img"
                                         sx={{
-                                            width: { xs: 90, sm: 110, md: 140 },
-                                            height: { xs: 120, sm: 150, md: 200 },
+                                            width: { xs: "100%", sm: 110, md: 140 },
+                                            height: { xs: 160, sm: 150, md: 200 },
                                             objectFit: "cover",
                                             borderRadius: "8px",
                                         }}
@@ -112,6 +113,7 @@ export default function ShoppingCartPage() {
                                     <CardContent
                                         sx={{
                                             flexGrow: 1,
+                                            width: "100%",
                                             display: "flex",
                                             flexDirection: "column",
                                             justifyContent: "space-between",
@@ -154,7 +156,12 @@ export default function ShoppingCartPage() {
 
                                         {/* Quantity Controls */}
                                         <Box
-                                            sx={{ display: "flex", alignItems: "center", mt: { xs: 1.5, md: 2 } }}
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                flexWrap: "wrap",
+                                                mt: { xs: 1.5, md: 2 },
+                                            }}
                                         >
                                             <IconButton
                                                 onClick={() =>
@@ -175,7 +182,7 @@ export default function ShoppingCartPage() {
                                             </Typography>
 
                                             <IconButton
-                                                disabled={item.quantity >= item.book.quantity}    
+                                                disabled={item.quantity >= item.book.quantity}
                                                 onClick={() =>
                                                     increaseQty(item.book.bookId, item.cartItemId)
                                                 }
@@ -260,4 +267,5 @@ export default function ShoppingCartPage() {
         </Box>
     );
 }
+
 

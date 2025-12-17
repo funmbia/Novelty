@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState} from "react";
+import { createContext, useContext, useEffect, useState} from "react";
 import { useAuth } from "./AuthContext";
 import {
     getCartByUserId,
@@ -12,7 +12,6 @@ import {
 
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
-const [isInitialLoad, setIsInitialLoad] = useState(true);
 
 // Generate temporary ID for guest cart items
 const generateId = () =>
@@ -20,7 +19,7 @@ const generateId = () =>
 
 export function CartProvider({ children }) {
     const { user, cartReady } = useAuth();
-
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const userId = user?.userId ?? null;
     const authToken = user?.authToken ?? null;
 
