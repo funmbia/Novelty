@@ -3,13 +3,18 @@ import {
   Box, Typography, Paper, Button, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, Divider, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Alert, Snackbar, Pagination,
-  CircularProgress
+  CircularProgress, Select, MenuItem, FormControl, InputLabel, Chip,
+  OutlinedInput, IconButton, Popover, Badge
 } from "@mui/material";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import SortIcon from "@mui/icons-material/Sort";
+import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { primaryButton, secondaryButton, errorButton } from "../utils/buttonStyles";
 import { useAuth } from "../context/AuthContext";
 import { createBook, getBookById, updateBookStock, deleteBook } from "../api/adminApi";
-import { listBooks } from "../api/catalogAPI";
+import { listBooks, getGenres } from "../api/catalogAPI";
 
 export default function AdminInventoryPage() {
   const navigate = useNavigate();
@@ -26,8 +31,18 @@ export default function AdminInventoryPage() {
   // search states
   const [searchBookId, setSearchBookId] = useState("");
   const [searchTitleAuthor, setSearchTitleAuthor] = useState("");
-  const [activeSearch, setActiveSearch] = useState({ type: null, value: "" }); // tracks what search is active
+  const [activeSearch, setActiveSearch] = useState({ type: null, value: "" });
   
+  // filter and sort states
+  const [availableGenres, setAvailableGenres] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [sortBy, setSortBy] = useState("title");
+  
+  // popover states
+  const [filterAnchor, setFilterAnchor] = useState(null);
+  const [sortAnchor, setSortAnchor] = useState(null);
+  
+  // book states
   const [selectedBook, setSelectedBook] = useState(null);
   const [newStock, setNewStock] = useState("");
   const [newBookModalOpen, setNewBookModalOpen] = useState(false);
@@ -38,9 +53,12 @@ export default function AdminInventoryPage() {
 
   // page states
   const [page, setPage] = useState(0);
-  const [pageSize] = useState(100);
+  const [pageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   
+  // computed values
+  const hasActiveFilters = selectedGenres.length > 0 || sortBy !== "title";
+  const activeFilterCount = selectedGenres.length + (sortBy !== "title" ? 1 : 0);
 
   // ---------------------- ALERT HANDLERS ----------------------
   const showAlert = (severity, message) => {
@@ -58,13 +76,13 @@ export default function AdminInventoryPage() {
       const response = await listBooks({ 
         page: pageNum, 
         size: pageSize, 
-        sort: "title",
+        sort: sortBy,
         search: activeSearch.type === "titleAuthor" ? activeSearch.value : "",
-        genre: ""
+        genre: selectedGenres.join(",")
       });
       
       setBooks(response.bookList || []);
-      setTotalBooks(response.totalItem || 0);
+      setTotalBooks(response.totalElements || 0);
       setTotalPages(response.totalPage || 0);
     } catch (err) {
       console.error(err);
@@ -76,6 +94,19 @@ export default function AdminInventoryPage() {
       setLoading(false);
     }
   }
+
+  // ---------------------- LOAD GENRES ----------------------
+  useEffect(() => {
+    async function fetchGenres() {
+      try {
+        const response = await getGenres();
+        setAvailableGenres(response.genres || []);
+      } catch (err) {
+        console.error("Failed to load genres:", err);
+      }
+    }
+    fetchGenres();
+  }, []);
 
   // ------------------- SEARCH BY BOOK ID -------------------
   async function searchByBookId() {
@@ -92,12 +123,20 @@ export default function AdminInventoryPage() {
       setTotalPages(1);
       setPage(0);
       setActiveSearch({ type: "bookId", value: searchBookId.trim() });
+      
+      // Clear filters AFTER setting active search to prevent useEffect interference
+      setSelectedGenres([]);
+      setSortBy("title");
     } catch (err) {
       console.error(err);
       setActiveSearch({ type: "bookId", value: searchBookId.trim() });
       setBooks([]);
       setTotalBooks(0);
       setTotalPages(0);
+      
+      // Clear filters even on error
+      setSelectedGenres([]);
+      setSortBy("title");
     } finally {
       setLoading(false);
     }
@@ -110,9 +149,12 @@ export default function AdminInventoryPage() {
       return;
     }
 
+    // Clear all filters when searching
+    setSelectedGenres([]);
+    setSortBy("title");
+
     setActiveSearch({ type: "titleAuthor", value: searchTitleAuthor.trim() });
     setPage(0);
-    // loadBooks will be triggered by useEffect when activeSearch changes
   }
 
   // ------------------- CLEAR SEARCH -------------------
@@ -123,18 +165,39 @@ export default function AdminInventoryPage() {
     setPage(0);
   }
 
-  // ------------------- LOAD BOOKS WHEN SEARCH/PAGE CHANGES -------------------
+  // ------------------- CLEAR ALL FILTERS -------------------
+  function clearAllFilters() {
+    setSelectedGenres([]);
+    setSortBy("title");
+    setFilterAnchor(null);
+    setSortAnchor(null);
+  }
+
+  // ------------------- LOAD BOOKS WHEN SEARCH/PAGE/FILTERS CHANGE -------------------
   useEffect(() => {
     if (activeSearch.type === "bookId") {
-      // Don't reload if viewing a single book by ID
       return;
     }
     loadBooks(page);
-  }, [page, activeSearch]);
+  }, [page, activeSearch, selectedGenres, sortBy]);
 
   // ------------------- PAGINATION HANDLER -------------------
   const handlePageChange = (event, value) => {
     setPage(value - 1);
+  };
+
+  // ------------------- GENRE FILTER HANDLER -------------------
+  const handleGenreChange = (event) => {
+    const value = event.target.value;
+    setSelectedGenres(typeof value === 'string' ? value.split(',') : value);
+    setPage(0);
+  };
+
+  // ------------------- SORT HANDLER -------------------
+  const handleSortChange = (event) => {
+    setSortBy(event.target.value);
+    setPage(0);
+    setSortAnchor(null);
   };
 
   // ------------------- ADJUST INVENTORY HANDLER -------------------
@@ -150,7 +213,6 @@ export default function AdminInventoryPage() {
       setSelectedBook(null);
       setNewStock("");
       
-      // Reload current view
       if (activeSearch.type === "bookId") {
         searchByBookId();
       } else {
@@ -171,7 +233,6 @@ export default function AdminInventoryPage() {
       showAlert("success", "Book deleted successfully!");
       setSelectedBook(null);
       
-      // Reload current view
       if (activeSearch.type === "bookId") {
         clearSearch();
       } else {
@@ -209,7 +270,6 @@ export default function AdminInventoryPage() {
         imageUrl: "", thumbnailUrl: "", quantity: "", year: "", genres: []
       });
       
-      // Reload current view
       if (activeSearch.type === "bookId") {
         clearSearch();
       } else {
@@ -228,7 +288,7 @@ export default function AdminInventoryPage() {
       </Typography>
 
       {/* SEARCH SECTION */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>Search</Typography>
         
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mb: 2 }}>
@@ -303,6 +363,192 @@ export default function AdminInventoryPage() {
         )}
       </Paper>
 
+      {/* COMPACT FILTER & SORT BAR */}
+      <Box sx={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        gap: 2, 
+        mb: 3,
+        flexWrap: "wrap"
+      }}>
+        {/* Filter Button */}
+        <Button
+          size="small"
+          startIcon={
+            <Badge badgeContent={selectedGenres.length} color="primary">
+              <FilterListIcon />
+            </Badge>
+          }
+          onClick={(e) => setFilterAnchor(e.currentTarget)}
+          disabled={loading || activeSearch.type === "bookId"}
+          sx={{ 
+            textTransform: "none", 
+            color: "text.secondary",
+            fontSize: "0.875rem"
+          }}
+        >
+          Filter by Genre
+        </Button>
+
+        {/* Sort Button */}
+        <Button
+          size="small"
+          startIcon={<SortIcon />}
+          onClick={(e) => setSortAnchor(e.currentTarget)}
+          disabled={loading || activeSearch.type === "bookId"}
+          sx={{ 
+            textTransform: "none", 
+            color: "text.secondary",
+            fontSize: "0.875rem"
+          }}
+        >
+          Sort: {sortBy === "title" ? "Title" : sortBy === "author" ? "Author" : sortBy === "price" ? "Price" : sortBy === "year" ? "Year" : "Stock"}
+        </Button>
+
+        {/* Clear Filters Link */}
+        {hasActiveFilters && (
+          <Button
+            size="small"
+            onClick={clearAllFilters}
+            sx={{ 
+              textTransform: "none", 
+              color: "primary.main",
+              fontSize: "0.875rem",
+              textDecoration: "underline"
+            }}
+          >
+            Clear filters
+          </Button>
+        )}
+      </Box>
+
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
+        <Box sx={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center", 
+          gap: 1, 
+          mb: 3,
+          flexWrap: "wrap"
+        }}>
+          <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
+            Active filters:
+          </Typography>
+          {selectedGenres.map((genre) => (
+            <Chip
+              key={genre}
+              label={genre}
+              size="small"
+              onDelete={() => {
+                setSelectedGenres(selectedGenres.filter(g => g !== genre));
+                setPage(0);
+              }}
+              sx={{ fontSize: "0.75rem" }}
+            />
+          ))}
+          {sortBy !== "title" && (
+            <Chip
+              label={`Sort: ${sortBy}`}
+              size="small"
+              onDelete={() => {
+                setSortBy("title");
+                setPage(0);
+              }}
+              sx={{ fontSize: "0.75rem" }}
+            />
+          )}
+        </Box>
+      )}
+
+      {/* Filter Popover */}
+      <Popover
+        open={Boolean(filterAnchor)}
+        anchorEl={filterAnchor}
+        onClose={() => setFilterAnchor(null)}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 250 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              Filter by Genre
+            </Typography>
+            <IconButton size="small" onClick={() => setFilterAnchor(null)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <FormControl fullWidth size="small">
+            <InputLabel id="genre-filter-popover-label">Select Genres</InputLabel>
+            <Select
+              labelId="genre-filter-popover-label"
+              multiple
+              value={selectedGenres}
+              onChange={handleGenreChange}
+              input={<OutlinedInput label="Select Genres" />}
+              renderValue={(selected) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map((value) => (
+                    <Chip key={value} label={value} size="small" />
+                  ))}
+                </Box>
+              )}
+            >
+              {availableGenres.map((genre) => (
+                <MenuItem key={genre} value={genre}>
+                  {genre}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      </Popover>
+
+      {/* Sort Popover */}
+      <Popover
+        open={Boolean(sortAnchor)}
+        anchorEl={sortAnchor}
+        onClose={() => setSortAnchor(null)}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+      >
+        <Box sx={{ p: 2, minWidth: 200 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              Sort By
+            </Typography>
+            <IconButton size="small" onClick={() => setSortAnchor(null)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <FormControl fullWidth size="small">
+            <Select
+              value={sortBy}
+              onChange={handleSortChange}
+            >
+              <MenuItem value="title">Title</MenuItem>
+              <MenuItem value="author">Author</MenuItem>
+              <MenuItem value="price">Price</MenuItem>
+              <MenuItem value="year">Year</MenuItem>
+              <MenuItem value="quantity">Stock Quantity</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </Popover>
+
       {/* ADD BOOK BUTTON & PAGINATION INFO */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
         <Button 
@@ -316,9 +562,17 @@ export default function AdminInventoryPage() {
           {loading ? "Loading..." : (
             books.length > 0 ? (
               <>
-                Showing {page * pageSize + 1} - {Math.min((page + 1) * pageSize, page * pageSize + books.length)} books
-                {totalBooks > 0 && ` of ${totalBooks} total`}
-                {activeSearch.type && <span style={{ fontWeight: "bold", marginLeft: "8px" }}>(search results)</span>}
+                {(activeSearch.type || hasActiveFilters) ? (
+                  <>
+                    <span style={{ fontWeight: "bold" }}>
+                      {activeSearch.type ? "Search Results" : "Filtered Results"}:
+                    </span> Showing {page * pageSize + 1} - {Math.min((page + 1) * pageSize, page * pageSize + books.length)} of {totalBooks} books
+                  </>
+                ) : (
+                  <>
+                    Showing {page * pageSize + 1} - {Math.min((page + 1) * pageSize, page * pageSize + books.length)} of {totalBooks} books
+                  </>
+                )}
               </>
             ) : "No books to display"
           )}
@@ -378,7 +632,16 @@ export default function AdminInventoryPage() {
                 <TableCell>{book.title}</TableCell>
                 <TableCell>{book.author}</TableCell>
                 <TableCell>{book.isbn}</TableCell>
-                <TableCell>{book.quantity}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {book.quantity}
+                    {book.quantity < 5 && 
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "orange" }}>
+                        <WarningAmberIcon sx={{ fontSize: "1.2rem" }} />
+                      </Box>
+                    }
+                  </Box>
+                </TableCell>
                 <TableCell>
                   <Button 
                     variant="outlined" 
@@ -415,6 +678,20 @@ export default function AdminInventoryPage() {
           <DialogContent dividers>
             <Typography sx={{ mb: 1 }}>
               Current Stock: <strong>{selectedBook.quantity}</strong>
+              {selectedBook.quantity < 5 && 
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "orange" }}>
+                        <WarningAmberIcon sx={{ fontSize: "1.2rem" }} />
+                        <span>Low Stock</span>
+                </Box>
+              // (
+              //   <Chip 
+              //     label="Low Stock" 
+              //     color="warning" 
+              //     size="small"
+              //     sx={{ ml: 1, fontWeight: "bold" }}
+              //   />
+              // )
+              }
             </Typography>
             <Divider sx={{ my: 2 }} />
             <TextField 

@@ -112,7 +112,7 @@ export default function AdminCustomersPage() {
       }}>
         <CircularProgress size={60} />
         <Typography variant="h6" color="text.secondary">
-          Loading customers... ({allCustomers.length} customers loaded)
+          Loading customers...
         </Typography>
         <Box sx={{ width: "300px" }}>
           <LinearProgress />
