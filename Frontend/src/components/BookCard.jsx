@@ -27,7 +27,7 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
       onClick={() => onViewDetails(book.bookId)}
       sx={{
         width: { xs: 170, sm: 200, md: 240, lg: 260, xl: 300 },
-        height: { xs: 330, sm: 360, md: 420, lg: 450, xl: 500 },
+        minHeight: { xs: 330, sm: 360, md: 420, lg: 450, xl: 500 },
         m: 1,
         cursor: "pointer",
         display: "flex",
@@ -80,25 +80,27 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           </Typography>
 
           {/* STOCK LABEL */}
-          {isOutOfStock && (
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ mt: 0.5, display: "block", fontWeight: 600 }}
-            >
-              Out of stock
-            </Typography>
-          )}
+          <Box sx={{ minHeight: 18 }}>
+            {isOutOfStock && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block", fontWeight: 600 }}
+              >
+                Out of stock
+              </Typography>
+            )}
 
-          {isLowStock && (
-            <Typography
-              variant="caption"
-              color="warning.main"
-              sx={{ mt: 0.5, display: "block", fontWeight: 600 }}
-            >
-              Only {remainingStock} left
-            </Typography>
-          )}
+            {isLowStock && (
+              <Typography
+                variant="caption"
+                color="warning.main"
+                sx={{ display: "block", fontWeight: 600 }}
+              >
+                Only {remainingStock} left
+              </Typography>
+            )}
+          </Box>
         </CardContent>
       </Box>
 

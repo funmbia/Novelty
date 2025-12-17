@@ -90,17 +90,18 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchBooks();
-  }, [page, selectedGenre, sortBy]);
+  }, [page, selectedGenre, sortBy,  searchQuery]);
 
   // Update selected genre if user clicks genre in navbar
   useEffect(() => {
     setSelectedGenre(urlGenre);
+    setSearchQuery("");
+    setPage(1);
   }, [urlGenre]);
 
   // Search submit
   const handleSearch = () => {
     setPage(1);
-    fetchBooks();
   };
 
   const handleAddToCart = (book) => {
