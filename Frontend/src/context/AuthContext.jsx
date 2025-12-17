@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
+  const [cartReady, setCartReady] = useState(false);
 
   const login = async (email, password) => {
     try {
@@ -44,7 +45,7 @@ export function AuthProvider({ children }) {
         // Clear guest cart
         localStorage.removeItem("cart");
       }
-
+      setCartReady(true);
       return { success: true };
     } catch (err) {
       throw new Error(err.response?.data?.message || "Login failed");
@@ -124,7 +125,7 @@ const updatePasswordInContext = (newPassword) => {
 };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout,   setUser,
+    <AuthContext.Provider value={{ user, cartReady, login, register, logout,   setUser,
   updatePasswordInContext }}>
       {children}
     </AuthContext.Provider>

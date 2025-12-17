@@ -34,12 +34,12 @@ export default function Navbar() {
   const [openGenres, setOpenGenres] = React.useState(false);
 
   const { cartCount } = useCart();
-  const { user, logout } = useAuth();                
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const isLoggedIn = !!user;
-  const isAdmin = user?.admin === true;             
+  const isAdmin = user?.admin === true;
 
   useEffect(() => {
     getGenres().then(data => {
@@ -52,7 +52,7 @@ export default function Navbar() {
   const handleLogoutClick = () => {
     const confirmed = window.confirm("Are you sure you want to log out?");
     if (confirmed) {
-      logout();                                      
+      logout();
       navigate("/");
     }
   };
@@ -67,7 +67,7 @@ export default function Navbar() {
       <List>
         <ListItemButton
           selected={location.pathname === '/'}
-          onClick={() => navigate('/', { state: { reset: true } })}
+          onClick={() => navigate('/?genre=All')}
         >
           <ListItemIcon><HomeIcon /></ListItemIcon>
           <ListItemText primary="Home" />
@@ -169,39 +169,39 @@ export default function Navbar() {
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed"
-  sx={{
-    zIndex: (theme) => theme.zIndex.drawer + 1,
-    backgroundColor: '#283593',
-  }}
->
-  <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-      
-    {/* Left Side */}
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <IconButton 
-        color="inherit" 
-        edge="start"
-        onClick={handleDrawerToggle}
-        sx={{ mr: 2, display: { sm: 'none' } }}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: '#283593',
+        }}
       >
-        <MenuIcon />
-      </IconButton>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
 
-      <AutoStoriesIcon sx={{ mr: 1 }} />
-      <Typography variant="h6" noWrap>
-        novelty
-      </Typography>
-    </Box>
+          {/* Left Side */}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
 
-    {/* Right Side – Welcome User */}
-    {user && (
-      <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
-        Hello, <strong>{user.firstName}</strong>
-      </Typography>
-    )}
+            <AutoStoriesIcon sx={{ mr: 1 }} />
+            <Typography variant="h6" noWrap>
+              novelty
+            </Typography>
+          </Box>
 
-  </Toolbar>
-</AppBar>
+          {/* Right Side – Welcome User */}
+          {user && (
+            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              Hello, <strong>{user.firstName}</strong>
+            </Typography>
+          )}
+
+        </Toolbar>
+      </AppBar>
 
       {/* MOBILE DRAWER */}
       <Drawer

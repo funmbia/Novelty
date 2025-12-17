@@ -9,6 +9,7 @@ import {
     clearCart as apiClearCart,
 } from "../api/cartApi";
 
+
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
@@ -17,7 +18,7 @@ const generateId = () =>
     crypto?.randomUUID?.() || Math.floor(Math.random() * 1_000_000_000);
 
 export function CartProvider({ children }) {
-    const { user } = useAuth();
+    const { user, cartReady } = useAuth();
 
     const userId = user?.userId ?? null;
     const authToken = user?.authToken ?? null;
@@ -44,6 +45,9 @@ export function CartProvider({ children }) {
             return;
         }
 
+        // Logged in but merge not finished → wait
+        if (!cartReady) return;
+        
         // Logged-in user → load backend cart
         (async () => {
             try {
@@ -60,7 +64,7 @@ export function CartProvider({ children }) {
                 }
             }
         })();
-    }, [userId, authToken]);
+    }, [userId, authToken, cartReady]);
 
     //----------------------------------------------------------
     // Save guest cart to localStorage
