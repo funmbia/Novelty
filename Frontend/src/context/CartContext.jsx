@@ -63,25 +63,6 @@ export function CartProvider({ children }) {
     }, [userId, authToken]);
 
     //----------------------------------------------------------
-    // Handle forced reload after login merge
-    //----------------------------------------------------------
-    useEffect(() => {
-        const flag = localStorage.getItem("forceReloadCart");
-
-        if (userId && authToken && flag === "1") {
-            (async () => {
-                try {
-                    const res = await getCartByUserId(userId, authToken);
-                    setCartItems(res?.cart?.cartItemList ?? []);
-                } catch (err) {
-                    console.error("Forced reload failed:", err);
-                }
-                localStorage.removeItem("forceReloadCart");
-            })();
-        }
-    }, [userId, authToken]);
-
-    //----------------------------------------------------------
     // Save guest cart to localStorage
     //----------------------------------------------------------
     useEffect(() => {
@@ -129,8 +110,9 @@ export function CartProvider({ children }) {
                             author: book.author,
                             price: book.price,
                             imageUrl: book.imageUrl,
+                            quantity: book.quantity,
                         },
-                        quantity: qty,
+                        quantity: Math.min(qty, book.quantity ?? qty)
                     },
                 ];
             });
