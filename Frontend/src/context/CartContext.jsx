@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useContext, useEffect, useState} from "react";
 import { useAuth } from "./AuthContext";
 import {
     getCartByUserId,
@@ -12,7 +12,7 @@ import {
 
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
-const isInitialLoad = useRef(true);
+const [isInitialLoad, setIsInitialLoad] = useState(true);
 
 // Generate temporary ID for guest cart items
 const generateId = () =>
@@ -45,7 +45,7 @@ export function CartProvider({ children }) {
         }
 
         // Logged in but merge not finished → wait (except on refresh)
-        if (!cartReady && !isInitialLoad.current) return;
+        if (!cartReady && !isInitialLoad) return;
 
         (async () => {
             try {
@@ -55,7 +55,7 @@ export function CartProvider({ children }) {
                 const created = await createCart(userId, authToken);
                 setCartItems(created?.cart?.cartItemList ?? []);
             } finally {
-                isInitialLoad.current = false;
+                setIsInitialLoad(false);
             }
         })();
     }, [userId, authToken, cartReady]);
