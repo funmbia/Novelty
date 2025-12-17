@@ -12,6 +12,7 @@ import {
 
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
+const isInitialLoad = useRef(true);
 
 // Generate temporary ID for guest cart items
 const generateId = () =>
@@ -29,11 +30,10 @@ export function CartProvider({ children }) {
     // LOAD CART (Backend if logged in, localStorage if guest)
     //----------------------------------------------------------
     useEffect(() => {
+        // Guest user
         if (!userId || !authToken) {
-            // Load guest cart
             const stored = localStorage.getItem("cart");
             const items = stored ? JSON.parse(stored) : [];
-
             setCartItems(
                 items.map((i) => ({
                     cartItemId: i.cartItemId || generateId(),
@@ -41,30 +41,25 @@ export function CartProvider({ children }) {
                     quantity: i.quantity,
                 }))
             );
-
             return;
         }
 
-        // Logged in but merge not finished → wait
-        if (!cartReady) return;
-        
-        // Logged-in user → load backend cart
+        // Logged in but merge not finished → wait (except on refresh)
+        if (!cartReady && !isInitialLoad.current) return;
+
         (async () => {
             try {
                 const res = await getCartByUserId(userId, authToken);
                 setCartItems(res?.cart?.cartItemList ?? []);
-            } catch (err) {
-                console.warn("Cart not found → creating one automatically");
-
-                try {
-                    const created = await createCart(userId, authToken);
-                    setCartItems(created?.cart?.cartItemList ?? []);
-                } catch (innerErr) {
-                    console.error("Failed to create cart:", innerErr);
-                }
+            } catch {
+                const created = await createCart(userId, authToken);
+                setCartItems(created?.cart?.cartItemList ?? []);
+            } finally {
+                isInitialLoad.current = false;
             }
         })();
     }, [userId, authToken, cartReady]);
+
 
     //----------------------------------------------------------
     // Save guest cart to localStorage

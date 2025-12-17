@@ -26,6 +26,7 @@ export default function HomePage() {
   // State
   const [genres, setGenres] = useState(["All"]);
   const [selectedGenre, setSelectedGenre] = useState(urlGenre);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("none");
   const [books, setBooks] = useState([]);
@@ -90,17 +91,19 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchBooks();
-  }, [page, selectedGenre, sortBy,  searchQuery]);
+  }, [page, selectedGenre, sortBy, searchQuery]);
 
   // Update selected genre if user clicks genre in navbar
   useEffect(() => {
     setSelectedGenre(urlGenre);
+    setSearchInput("");
     setSearchQuery("");
     setPage(1);
   }, [urlGenre]);
 
   // Search submit
   const handleSearch = () => {
+    setSearchQuery(searchInput);
     setPage(1);
   };
 
@@ -135,8 +138,8 @@ export default function HomePage() {
           }}
         >
           <SearchBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            searchQuery={searchInput}
+            setSearchQuery={setSearchInput}
             onSearchSubmit={handleSearch}
           />
         </Box>
