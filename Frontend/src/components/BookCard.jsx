@@ -8,9 +8,19 @@ import {
   Box,
 } from "@mui/material";
 
+import { useCart } from "../context/CartContext";
+
 export default function BookCard({ book, onAddToCart, onViewDetails }) {
-  const isOutOfStock = book.quantity === 0;
-  const isLowStock = book.quantity > 0 && book.quantity <= 5;
+  const { cartItems } = useCart();
+  const cartItem = cartItems.find(
+    (i) => i.book.bookId === book.bookId
+  );
+  const quantityInCart = cartItem?.quantity ?? 0;
+
+  const remainingStock = book.quantity - quantityInCart;
+
+  const isOutOfStock = remainingStock <= 0;
+  const isLowStock = remainingStock > 0 && remainingStock <= 5;
 
   return (
     <Card
@@ -86,7 +96,7 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
               color="warning.main"
               sx={{ mt: 0.5, display: "block", fontWeight: 600 }}
             >
-              Only {book.quantity} left
+              Only {remainingStock} left
             </Typography>
           )}
         </CardContent>

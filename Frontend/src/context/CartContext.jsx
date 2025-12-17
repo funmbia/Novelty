@@ -109,9 +109,12 @@ export function CartProvider({ children }) {
                 );
 
                 if (existing) {
+                    const stock = book.quantity ?? 0;
+                    const newQty = Math.min(existing.quantity + qty, stock);
+
                     return prev.map((i) =>
                         i.book.bookId === book.bookId
-                            ? { ...i, quantity: i.quantity + qty }
+                            ? { ...i, quantity: newQty }
                             : i
                     );
                 }
@@ -158,6 +161,9 @@ export function CartProvider({ children }) {
     const increaseQty = async (bookId, cartItemId) => {
         const item = cartItems.find((i) => i.cartItemId === cartItemId);
         if (!item) return;
+
+        const stock = item.book?.quantity ?? 0;
+        if (item.quantity >= stock) return;
 
         if (userId && authToken) {
             const res = await updateCartItemQuantity(
