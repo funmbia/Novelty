@@ -41,7 +41,12 @@ export default function BookDetailsPage() {
         );
     }
 
-    const increaseQty = () => setQty(qty + 1);
+    const increaseQty = () => {
+        if (qty < book.quantity) {
+            setQty(qty + 1);
+        }
+    };
+
     const decreaseQty = () => setQty(Math.max(1, qty - 1));
 
 
@@ -157,6 +162,7 @@ export default function BookDetailsPage() {
                             <Button
                                 variant="outlined"
                                 onClick={increaseQty}
+                                disabled={qty >= book.quantity}
                                 sx={{
                                     minWidth: 40,
                                     fontSize: "1.2rem",
@@ -180,7 +186,7 @@ export default function BookDetailsPage() {
                                 variant="contained"
                                 size="large"
                                 onClick={() => addToCart(book, qty)}
-                                disabled={book.quantity === 0}
+                                disabled={book.quantity === 0 || qty > book.quantity}
                                 sx={{
                                     flexGrow: { xs: 1, sm: 0 },
                                     borderRadius: "20px",

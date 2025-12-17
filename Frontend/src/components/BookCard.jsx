@@ -9,6 +9,9 @@ import {
 } from "@mui/material";
 
 export default function BookCard({ book, onAddToCart, onViewDetails }) {
+  const isOutOfStock = book.quantity === 0;
+  const isLowStock = book.quantity > 0 && book.quantity <= 5;
+
   return (
     <Card
       onClick={() => onViewDetails(book.bookId)}
@@ -29,7 +32,6 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
       }}
     >
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* Bigger images on desktop */}
         <CardMedia
           component="img"
           image={book.imageUrl}
@@ -37,6 +39,7 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           sx={{
             height: { xs: 160, sm: 180, md: 220, lg: 250, xl: 280 },
             objectFit: "cover",
+            filter: isOutOfStock ? "grayscale(60%)" : "none",
           }}
         />
 
@@ -65,6 +68,27 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           >
             ${book.price.toFixed(2)}
           </Typography>
+
+          {/* STOCK LABEL */}
+          {isOutOfStock && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ mt: 0.5, display: "block", fontWeight: 600 }}
+            >
+              Out of stock
+            </Typography>
+          )}
+
+          {isLowStock && (
+            <Typography
+              variant="caption"
+              color="warning.main"
+              sx={{ mt: 0.5, display: "block", fontWeight: 600 }}
+            >
+              Only {book.quantity} left
+            </Typography>
+          )}
         </CardContent>
       </Box>
 
@@ -73,25 +97,26 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           size="small"
           variant="contained"
           fullWidth
+          disabled={isOutOfStock}
           onClick={(e) => {
             e.stopPropagation();
             onAddToCart(book);
           }}
           sx={{
             borderRadius: "20px",
-            backgroundColor: "#3f51b5",
+            backgroundColor: isOutOfStock ? "#9e9e9e" : "#3f51b5",
             textTransform: "none",
             fontWeight: "bold",
             py: 1,
             fontSize: { xs: "0.75rem", md: "0.9rem" },
             "&:hover": {
-              backgroundColor: "#303f9f",
-              transform: "scale(1.03)",
+              backgroundColor: isOutOfStock ? "#9e9e9e" : "#303f9f",
+              transform: isOutOfStock ? "none" : "scale(1.03)",
             },
             transition: "0.2s ease",
           }}
         >
-          Add to Cart
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </Button>
       </CardActions>
     </Card>
