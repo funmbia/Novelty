@@ -23,8 +23,7 @@ import {
 
 import { getAddressForUser, updateAddress } from "../api/addressApi";
 import {
-  getUserPaymentMethods,
-  deletePaymentMethod,
+  getUserDefaultPaymentMethod,
   addPaymentMethod,
   setUserDefaultPaymentMethod
 } from "../api/paymentApi";
@@ -118,15 +117,18 @@ export default function AccountPage() {
         }
 
         // Payment
-        const payRes = await getUserPaymentMethods(user.userId, user.authToken);
 
-        if (payRes.paymentMethodList?.length > 0) {
-          const card = payRes.paymentMethodList[0];
+        const defaultCard = await getUserDefaultPaymentMethod(
+          user.userId,
+          user.authToken
+        );
+
+        if (defaultCard) {
           setPayment({
             cardHolderName: `${user.firstName} ${user.lastName}`,
-            cardNumber: `**** **** **** ${card.cardLast4}`,
-            expiryMonth: card.expiryMonth,
-            expiryYear: card.expiryYear,
+            cardNumber: `**** **** **** ${defaultCard.cardLast4}`,
+            expiryMonth: defaultCard.expiryMonth,
+            expiryYear: defaultCard.expiryYear,
             cvv: "",
           });
         }
@@ -278,92 +280,75 @@ export default function AccountPage() {
 
   // PAYMENT
   const handleSavePayment = async () => {
-  clearSection("payment");
+    clearSection("payment");
 
-  const sectionErrors = {};
+    const sectionErrors = {};
 
-  const raw = payment.cardNumber.startsWith("****")
-    ? null
-    : payment.cardNumber.replace(/\s+/g, "");
+    const raw = payment.cardNumber.startsWith("****")
+      ? null
+      : payment.cardNumber.replace(/\s+/g, "");
 
-  if (raw && !isValidCardNumber(raw))
-    sectionErrors.cardNumber = "Invalid card number.";
+    if (raw && !isValidCardNumber(raw))
+      sectionErrors.cardNumber = "Invalid card number.";
 
-  if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
-    sectionErrors.expiryMonth = "Invalid expiry date.";
-    sectionErrors.expiryYear = "Invalid expiry date.";
-  }
-
-  if (isEmpty(payment.cvv)) sectionErrors.cvv = "CVV is required.";
-  else if (!isValidCvv(payment.cvv)) sectionErrors.cvv = "Invalid CVV.";
-
-  if (Object.keys(sectionErrors).length > 0) {
-    setErrors((prev) => ({ ...prev, payment: sectionErrors }));
-    return;
-  }
-
-  try {
-    // Fetch existing cards
-    const existing = await getUserPaymentMethods(
-      user.userId,
-      user.authToken
-    );
-
-    const old = existing.paymentMethodList?.[0] || null;
-
-    const last4 = raw
-      ? raw.slice(-4)
-      : old?.cardLast4;
-
-    const newPm = {
-      cardLast4: last4,
-      cardBrand: detectCardBrand(raw || last4),
-      expiryMonth: payment.expiryMonth,
-      expiryYear: payment.expiryYear,
-    };
-
-    // ADD new card first
-    const addRes = await addPaymentMethod(
-      user.userId,
-      newPm,
-      user.authToken
-    );
-
-    const newPaymentMethodId =
-      addRes.paymentMethod?.paymentMethodId;
-
-    // Set new card as default
-    if (newPaymentMethodId) {
-      await setUserDefaultPaymentMethod(
-        newPaymentMethodId,
-        user.userId,
-        user.authToken
-      );
+    if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
+      sectionErrors.expiryMonth = "Invalid expiry date.";
+      sectionErrors.expiryYear = "Invalid expiry date.";
     }
 
-    // Delete old card
-    if (old) {
-      await deletePaymentMethod(
-        old.paymentMethodId,
-        user.userId,
-        user.authToken
-      );
+    if (isEmpty(payment.cvv)) sectionErrors.cvv = "CVV is required.";
+    else if (!isValidCvv(payment.cvv)) sectionErrors.cvv = "Invalid CVV.";
+
+    if (Object.keys(sectionErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, payment: sectionErrors }));
+      return;
     }
 
-    setPayment({
-      cardHolderName: payment.cardHolderName,
-      cardNumber: `**** **** **** ${last4}`,
-      expiryMonth: payment.expiryMonth,
-      expiryYear: payment.expiryYear,
-      cvv: "",
-    });
+    try {
+      const last4 = raw
+        ? raw.slice(-4)
+        : old?.cardLast4;
 
-    showMessage("Payment method updated!");
-  } catch (err) {
-    console.error(err);
-    showMessage("Failed to update payment method.", "error");
-  }
-};
+      const newPm = {
+        cardLast4: last4,
+        cardBrand: detectCardBrand(raw || last4),
+        expiryMonth: payment.expiryMonth,
+        expiryYear: payment.expiryYear,
+      };
+
+      // ADD new card
+      const addRes = await addPaymentMethod(
+        user.userId,
+        newPm,
+        user.authToken
+      );
+
+      const newPaymentMethodId =
+        addRes.paymentMethod?.paymentMethodId;
+
+      // Set new card as default
+      if (newPaymentMethodId) {
+        await setUserDefaultPaymentMethod(
+          newPaymentMethodId,
+          user.userId,
+          user.authToken
+        );
+      }
+
+      setPayment({
+        cardHolderName: payment.cardHolderName,
+        cardNumber: `**** **** **** ${last4}`,
+        expiryMonth: payment.expiryMonth,
+        expiryYear: payment.expiryYear,
+        cvv: "",
+      });
+
+      showMessage("Payment method updated!");
+    } catch (err) {
+      console.error(err);
+      showMessage("Failed to update payment method.", "error");
+    }
+  };
 
   // --- Dropdown lists ---
   const months = Array.from({ length: 12 }, (_, i) =>
