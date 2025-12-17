@@ -26,6 +26,7 @@ import {
   getUserPaymentMethods,
   deletePaymentMethod,
   addPaymentMethod,
+  setUserDefaultPaymentMethod
 } from "../api/paymentApi";
 import { updateUser } from "../api/userAPi";
 import { useAuth } from "../context/AuthContext";
@@ -240,7 +241,7 @@ export default function AccountPage() {
     }
   };
 
-  // ✔ ADDRESS
+  // ADDRESS
   const handleSaveAddress = async () => {
     clearSection("address");
 
@@ -275,72 +276,94 @@ export default function AccountPage() {
     }
   };
 
-  // ✔ PAYMENT
+  // PAYMENT
   const handleSavePayment = async () => {
-    clearSection("payment");
+  clearSection("payment");
 
-    const sectionErrors = {};
+  const sectionErrors = {};
 
-    const raw = payment.cardNumber.startsWith("****")
-      ? null
-      : payment.cardNumber.replace(/\s+/g, "");
+  const raw = payment.cardNumber.startsWith("****")
+    ? null
+    : payment.cardNumber.replace(/\s+/g, "");
 
-    if (raw && !isValidCardNumber(raw))
-      sectionErrors.cardNumber = "Invalid card number.";
+  if (raw && !isValidCardNumber(raw))
+    sectionErrors.cardNumber = "Invalid card number.";
 
-    if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
-      sectionErrors.expiryMonth = "Invalid expiry date.";
-      sectionErrors.expiryYear = "Invalid expiry date.";
+  if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
+    sectionErrors.expiryMonth = "Invalid expiry date.";
+    sectionErrors.expiryYear = "Invalid expiry date.";
+  }
+
+  if (isEmpty(payment.cvv)) sectionErrors.cvv = "CVV is required.";
+  else if (!isValidCvv(payment.cvv)) sectionErrors.cvv = "Invalid CVV.";
+
+  if (Object.keys(sectionErrors).length > 0) {
+    setErrors((prev) => ({ ...prev, payment: sectionErrors }));
+    return;
+  }
+
+  try {
+    // Fetch existing cards
+    const existing = await getUserPaymentMethods(
+      user.userId,
+      user.authToken
+    );
+
+    const old = existing.paymentMethodList?.[0] || null;
+
+    const last4 = raw
+      ? raw.slice(-4)
+      : old?.cardLast4;
+
+    const newPm = {
+      cardLast4: last4,
+      cardBrand: detectCardBrand(raw || last4),
+      expiryMonth: payment.expiryMonth,
+      expiryYear: payment.expiryYear,
+    };
+
+    // ADD new card first
+    const addRes = await addPaymentMethod(
+      user.userId,
+      newPm,
+      user.authToken
+    );
+
+    const newPaymentMethodId =
+      addRes.paymentMethod?.paymentMethodId;
+
+    // Set new card as default
+    if (newPaymentMethodId) {
+      await setUserDefaultPaymentMethod(
+        newPaymentMethodId,
+        user.userId,
+        user.authToken
+      );
     }
 
-    if (isEmpty(payment.cvv)) sectionErrors.cvv = "CVV is required.";
-    else if (!isValidCvv(payment.cvv)) sectionErrors.cvv = "Invalid CVV.";
-
-    if (Object.keys(sectionErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, payment: sectionErrors }));
-      return;
+    // Delete old card
+    if (old) {
+      await deletePaymentMethod(
+        old.paymentMethodId,
+        user.userId,
+        user.authToken
+      );
     }
 
-    try {
-      const existing = await getUserPaymentMethods(user.userId, user.authToken);
+    setPayment({
+      cardHolderName: payment.cardHolderName,
+      cardNumber: `**** **** **** ${last4}`,
+      expiryMonth: payment.expiryMonth,
+      expiryYear: payment.expiryYear,
+      cvv: "",
+    });
 
-      if (existing.paymentMethodList?.length > 0) {
-        const old = existing.paymentMethodList[0];
-        await deletePaymentMethod(
-          old.paymentMethodId,
-          user.userId,
-          user.authToken
-        );
-      }
-
-      const last4 = raw
-        ? raw.slice(-4)
-        : existing.paymentMethodList[0]?.cardLast4;
-
-      const newPm = {
-        cardLast4: last4,
-        cardBrand: detectCardBrand(raw || last4),
-        expiryMonth: payment.expiryMonth,
-        expiryYear: payment.expiryYear,
-        isDefault: true,
-      };
-
-      await addPaymentMethod(user.userId, newPm, user.authToken);
-
-      setPayment({
-        cardHolderName: payment.cardHolderName,
-        cardNumber: `**** **** **** ${last4}`,
-        expiryMonth: payment.expiryMonth,
-        expiryYear: payment.expiryYear,
-        cvv: "",
-      });
-
-      showMessage("Payment method updated!");
-    } catch (err) {
-      console.error(err);
-      showMessage("Failed to update payment method.", "error");
-    }
-  };
+    showMessage("Payment method updated!");
+  } catch (err) {
+    console.error(err);
+    showMessage("Failed to update payment method.", "error");
+  }
+};
 
   // --- Dropdown lists ---
   const months = Array.from({ length: 12 }, (_, i) =>
