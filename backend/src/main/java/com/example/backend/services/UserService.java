@@ -69,44 +69,11 @@ public class UserService {
         return convertToDto(updatedUser);
     }
 
-    // Delete user with all related entities using native SQL
-    // This handles the circular FK constraint between users and addresses
-    // Orders are preserved with user_id set to null for audit (or deleted if DB doesn't allow NULL)
-    @Transactional
+    // Delete user
     public void deleteUser(Long id) {
-        // Verify user exists
         if (!userRepo.existsById(id)) {
             throw new RuntimeException("User not found with id: " + id);
         }
-
-        // Delete in correct order to respect FK constraints
-        // 1. Handle orders - try to nullify first (preserve for audit)
-        try {
-            userRepo.nullifyOrdersUserId(id);
-        } catch (Exception e) {
-            // If nullifying fails (orders.user_id is NOT NULL in DB),
-            // delete orders and related data instead
-            userRepo.deletePaymentsByUserId(id);
-            userRepo.deleteOrderItemsByUserId(id);
-            userRepo.deleteOrdersByUserId(id);
-        }
-
-        // 2. Delete cart items (FK to cart)
-        userRepo.deleteCartItemsByUserId(id);
-
-        // 3. Delete cart (FK to user)
-        userRepo.deleteCartByUserId(id);
-
-        // 4. Delete payment methods (FK to user)
-        userRepo.deletePaymentMethodsByUserId(id);
-
-        // 5. Delete addresses (FK to user)
-        userRepo.deleteAddressesByUserId(id);
-
-        // 6. Break circular FK by nullifying users.address_id
-        userRepo.nullifyUserAddressId(id);
-
-        // 7. Finally delete the user
         userRepo.deleteById(id);
     }
 
