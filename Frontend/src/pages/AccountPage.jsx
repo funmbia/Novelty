@@ -279,17 +279,22 @@ export default function AccountPage() {
   };
 
   // PAYMENT
+
   const handleSavePayment = async () => {
     clearSection("payment");
 
     const sectionErrors = {};
 
-    const raw = payment.cardNumber.startsWith("****")
-      ? null
-      : payment.cardNumber.replace(/\s+/g, "");
+    const isMasked = payment.cardNumber.startsWith("****");
+    const raw = isMasked ? null : payment.cardNumber.replace(/\s+/g, "");
 
-    if (raw && !isValidCardNumber(raw))
+    //Require new card number
+    if (!raw) {
+      sectionErrors.cardNumber =
+        "Please enter a new card number to update your payment method.";
+    } else if (!isValidCardNumber(raw)) {
       sectionErrors.cardNumber = "Invalid card number.";
+    }
 
     if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
       sectionErrors.expiryMonth = "Invalid expiry date.";
@@ -305,18 +310,16 @@ export default function AccountPage() {
     }
 
     try {
-      const last4 = raw
-        ? raw.slice(-4)
-        : old?.cardLast4;
+      const last4 = raw.slice(-4);
 
       const newPm = {
         cardLast4: last4,
-        cardBrand: detectCardBrand(raw || last4),
+        cardBrand: detectCardBrand(raw),
         expiryMonth: payment.expiryMonth,
         expiryYear: payment.expiryYear,
       };
 
-      // ADD new card
+      // Add new card
       const addRes = await addPaymentMethod(
         user.userId,
         newPm,
@@ -326,7 +329,7 @@ export default function AccountPage() {
       const newPaymentMethodId =
         addRes.paymentMethod?.paymentMethodId;
 
-      // Set new card as default
+      // Make it default
       if (newPaymentMethodId) {
         await setUserDefaultPaymentMethod(
           newPaymentMethodId,
@@ -335,6 +338,7 @@ export default function AccountPage() {
         );
       }
 
+      // Update UI
       setPayment({
         cardHolderName: payment.cardHolderName,
         cardNumber: `**** **** **** ${last4}`,
@@ -349,6 +353,7 @@ export default function AccountPage() {
       showMessage("Failed to update payment method.", "error");
     }
   };
+
 
   // --- Dropdown lists ---
   const months = Array.from({ length: 12 }, (_, i) =>
