@@ -53,42 +53,56 @@ export default function HomePage() {
     });
   }, []);
 
-  const fetchBooks = () => {
-    setLoading(true);
+  const fetchBooks = async () => {
+  setLoading(true);
 
-    listBooks({
-      page: isDescending ? 0 : page - 1,
-      size: isDescending ? 10000 : PAGE_SIZE,
+  try {
+    // First call: get metadata (totalElements)
+    const meta = await listBooks({
+      page: 0,
+      size: PAGE_SIZE,
       sort: backendSortField[sortBy],
       search: searchQuery.trim() === "" ? null : searchQuery,
       genre: selectedGenre === "All" ? null : selectedGenre,
-    })
-      .then((data) => {
-        let result = data.bookList || [];
+    });
 
-        // Apply descending sort on frontend only when needed
-        if (sortBy === "priceHighLow") {
-          result.sort((a, b) => b.price - a.price);
-        } else if (sortBy === "titleZA") {
-          result.sort((a, b) => b.title.localeCompare(a.title));
-        }
+    const totalElements = meta.totalElements || 0;
 
-        if (isDescending) {
-          setTotalPages(Math.ceil(result.length / PAGE_SIZE));
-          const start = (page - 1) * PAGE_SIZE;
-          setBooks(result.slice(start, start + PAGE_SIZE));
-        } else {
-          setBooks(result);
-          setTotalPages(data.totalPage || 0);
-        }
+    // Second call ONLY if descending sort
+    const data = isDescending
+      ? await listBooks({
+          page: 0,
+          size: totalElements,
+          sort: backendSortField[sortBy],
+          search: searchQuery.trim() === "" ? null : searchQuery,
+          genre: selectedGenre === "All" ? null : selectedGenre,
+        })
+      : meta;
 
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error loading books:", err);
-        setLoading(false);
-      });
-  };
+    let result = data.bookList || [];
+
+    // Frontend descending sort
+    if (sortBy === "priceHighLow") {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "titleZA") {
+      result.sort((a, b) => b.title.localeCompare(a.title));
+    }
+
+    if (isDescending) {
+      setTotalPages(Math.ceil(result.length / PAGE_SIZE));
+      const start = (page - 1) * PAGE_SIZE;
+      setBooks(result.slice(start, start + PAGE_SIZE));
+    } else {
+      setBooks(result);
+      setTotalPages(data.totalPage || 0);
+    }
+  } catch (err) {
+    console.error("Error loading books:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Reset page when filters change
   useEffect(() => {
