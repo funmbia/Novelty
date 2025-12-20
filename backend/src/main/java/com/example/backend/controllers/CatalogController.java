@@ -27,6 +27,7 @@ public class CatalogController {
      * @param page Current page number
      * @param size Number of items per page
      * @param sort Field to sort by ("title", "price", "author")
+     * @param order Obtain the results in ascending or descending order ("asc", "desc")
      * @param search Search query for filtering books by title or author
      * @param genre Filter books by specific genre
      * @return Response object containing a paginated list of books
@@ -38,11 +39,12 @@ public class CatalogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "title") String sort,
+            @RequestParam(defaultValue = "asc") String order,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String genre
     ) {
         // Delegate to service layer to retrieve paginated books
-        Page<BookDto> books = catalogService.listBooks(page, size, sort, search, genre);
+        Page<BookDto> books = catalogService.listBooks(page, size, sort, order, search, genre);
 
         // Wrap the result in a Response object
         return Response.builder()
