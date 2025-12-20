@@ -32,17 +32,12 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Backend only supports ASC sorting
+  // Backend supports ASC sorting only
   const backendSortField = {
     priceLowHigh: "price",
-    priceHighLow: "price",
     titleAZ: "title",
-    titleZA: "title",
     none: "title",
   };
-
-  const isDescending =
-    sortBy === "priceHighLow" || sortBy === "titleZA";
 
   // Load genres once
   useEffect(() => {
@@ -54,55 +49,24 @@ export default function HomePage() {
   }, []);
 
   const fetchBooks = async () => {
-  setLoading(true);
+    setLoading(true);
+    try {
+      const data = await listBooks({
+        page: page - 1,
+        size: PAGE_SIZE,
+        sort: backendSortField[sortBy],
+        search: searchQuery.trim() || null,
+        genre: selectedGenre === "All" ? null : selectedGenre,
+      });
 
-  try {
-    // First call: get metadata (totalElements)
-    const meta = await listBooks({
-      page: 0,
-      size: PAGE_SIZE,
-      sort: backendSortField[sortBy],
-      search: searchQuery.trim() === "" ? null : searchQuery,
-      genre: selectedGenre === "All" ? null : selectedGenre,
-    });
-
-    const totalElements = meta.totalElements || 0;
-
-    // Second call ONLY if descending sort
-    const data = isDescending
-      ? await listBooks({
-          page: 0,
-          size: totalElements,
-          sort: backendSortField[sortBy],
-          search: searchQuery.trim() === "" ? null : searchQuery,
-          genre: selectedGenre === "All" ? null : selectedGenre,
-        })
-      : meta;
-
-    let result = data.bookList || [];
-
-    // Frontend descending sort
-    if (sortBy === "priceHighLow") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "titleZA") {
-      result.sort((a, b) => b.title.localeCompare(a.title));
-    }
-
-    if (isDescending) {
-      setTotalPages(Math.ceil(result.length / PAGE_SIZE));
-      const start = (page - 1) * PAGE_SIZE;
-      setBooks(result.slice(start, start + PAGE_SIZE));
-    } else {
-      setBooks(result);
+      setBooks(data.bookList || []);
       setTotalPages(data.totalPage || 0);
+    } catch (err) {
+      console.error("Error loading books:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error loading books:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // Reset page when filters change
   useEffect(() => {
@@ -217,4 +181,5 @@ export default function HomePage() {
     </Box>
   );
 }
+
 
