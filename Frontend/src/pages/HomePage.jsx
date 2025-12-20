@@ -20,10 +20,8 @@ export default function HomePage() {
   const location = useLocation();
   const { addToCart } = useCart();
 
-  // Read genre from URL
   const urlGenre = new URLSearchParams(location.search).get("genre") || "All";
 
-  // State
   const [genres, setGenres] = useState(["All"]);
   const [selectedGenre, setSelectedGenre] = useState(urlGenre);
   const [searchInput, setSearchInput] = useState("");
@@ -34,7 +32,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  // UI Sorting for descending
+  // Backend only supports ASC sorting
   const backendSortField = {
     priceLowHigh: "price",
     priceHighLow: "price",
@@ -42,6 +40,9 @@ export default function HomePage() {
     titleZA: "title",
     none: "title",
   };
+
+  const isDescending =
+    sortBy === "priceHighLow" || sortBy === "titleZA";
 
   // Load genres once
   useEffect(() => {
@@ -52,13 +53,12 @@ export default function HomePage() {
     });
   }, []);
 
-  // Fetch books from backend
   const fetchBooks = () => {
     setLoading(true);
 
     listBooks({
-      page: page - 1,
-      size: PAGE_SIZE,
+      page: isDescending ? 0 : page - 1,
+      size: isDescending ? 10000 : PAGE_SIZE,
       sort: backendSortField[sortBy],
       search: searchQuery.trim() === "" ? null : searchQuery,
       genre: selectedGenre === "All" ? null : selectedGenre,
@@ -66,16 +66,22 @@ export default function HomePage() {
       .then((data) => {
         let result = data.bookList || [];
 
+        // Apply descending sort on frontend only when needed
         if (sortBy === "priceHighLow") {
-          result = [...result].sort((a, b) => b.price - a.price);
+          result.sort((a, b) => b.price - a.price);
         } else if (sortBy === "titleZA") {
-          result = [...result].sort((a, b) =>
-            b.title.localeCompare(a.title)
-          );
+          result.sort((a, b) => b.title.localeCompare(a.title));
         }
 
-        setBooks(result);
-        setTotalPages(data.totalPage || 0);
+        if (isDescending) {
+          setTotalPages(Math.ceil(result.length / PAGE_SIZE));
+          const start = (page - 1) * PAGE_SIZE;
+          setBooks(result.slice(start, start + PAGE_SIZE));
+        } else {
+          setBooks(result);
+          setTotalPages(data.totalPage || 0);
+        }
+
         setLoading(false);
       })
       .catch((err) => {
@@ -84,16 +90,16 @@ export default function HomePage() {
       });
   };
 
-  // Fetch whenever filters change
+  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedGenre, sortBy]);
+  }, [selectedGenre, sortBy, searchQuery]);
 
   useEffect(() => {
     fetchBooks();
   }, [page, selectedGenre, sortBy, searchQuery]);
 
-  // Update selected genre if user clicks genre in navbar
+  // Navbar genre click
   useEffect(() => {
     setSelectedGenre(urlGenre);
     setSearchInput("");
@@ -101,15 +107,11 @@ export default function HomePage() {
     setPage(1);
   }, [urlGenre]);
 
-  // Search submit
   const handleSearch = () => {
     setSearchQuery(searchInput);
-    setPage(1);
   };
 
-  const handleAddToCart = (book) => {
-    addToCart(book);
-  };
+  const handleAddToCart = (book) => addToCart(book);
 
   const handleViewDetails = (bookId) => {
     navigate(`/book/${bookId}`);
@@ -117,7 +119,7 @@ export default function HomePage() {
 
   return (
     <Box sx={{ width: "100%", p: 2 }}>
-      {/* Search Bar + Sort Dropdown */}
+      {/* Search + Sort */}
       <Box
         sx={{
           width: "100%",
@@ -155,11 +157,13 @@ export default function HomePage() {
         </Box>
       </Box>
 
-      {/* Books Grid */}
+      {/* Books */}
       {loading ? (
         <Box textAlign="center" mt={5}>
           <CircularProgress />
-          <Typography variant="body2" mt={2}>Loading books...</Typography>
+          <Typography variant="body2" mt={2}>
+            Loading books...
+          </Typography>
         </Box>
       ) : books.length === 0 ? (
         <Typography
@@ -199,3 +203,4 @@ export default function HomePage() {
     </Box>
   );
 }
+
