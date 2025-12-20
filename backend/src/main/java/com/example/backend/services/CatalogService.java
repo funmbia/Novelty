@@ -28,9 +28,16 @@ public class CatalogService {
         this.bookRepo = bookRepo;
     }
 
-    public Page<BookDto> listBooks(int page, int size, String sortBy, String search, String genre) {
+    public Page<BookDto> listBooks(int page, int size, String sortBy, String order, String search, String genre) {
         //Create pagination configuration. PageRequest combines page number, size, and sort order
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        Pageable pageable;
+
+        if(order.equalsIgnoreCase("asc")){
+            pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        }
+        else{
+            pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+        }
 
         Page<Book> bookPage;
 
