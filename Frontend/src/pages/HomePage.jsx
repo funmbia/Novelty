@@ -32,14 +32,30 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Backend supports ASC sorting only
+  /* ----------------------------------------
+     Backend sort + order mappings
+     ---------------------------------------- */
+
   const backendSortField = {
     priceLowHigh: "price",
+    priceHighLow: "price",
     titleAZ: "title",
+    titleZA: "title",
     none: "title",
   };
 
-  // Load genres once
+  const backendSortOrder = {
+    priceLowHigh: "asc",
+    priceHighLow: "desc",
+    titleAZ: "asc",
+    titleZA: "desc",
+    none: "asc",
+  };
+
+  /* ----------------------------------------
+     Load genres once
+     ---------------------------------------- */
+
   useEffect(() => {
     getGenres().then((data) => {
       if (data.genres) {
@@ -48,13 +64,18 @@ export default function HomePage() {
     });
   }, []);
 
+  /* ----------------------------------------
+     Fetch books (backend handles sorting + pagination)
+     ---------------------------------------- */
+
   const fetchBooks = async () => {
     setLoading(true);
     try {
       const data = await listBooks({
-        page: page - 1,
+        page: page - 1, // backend is 0-based
         size: PAGE_SIZE,
         sort: backendSortField[sortBy],
+        order: backendSortOrder[sortBy],
         search: searchQuery.trim() || null,
         genre: selectedGenre === "All" ? null : selectedGenre,
       });
@@ -68,7 +89,10 @@ export default function HomePage() {
     }
   };
 
-  // Reset page when filters change
+  /* ----------------------------------------
+     Reset page when filters change
+     ---------------------------------------- */
+
   useEffect(() => {
     setPage(1);
   }, [selectedGenre, sortBy, searchQuery]);
@@ -77,13 +101,20 @@ export default function HomePage() {
     fetchBooks();
   }, [page, selectedGenre, sortBy, searchQuery]);
 
-  // Navbar genre click
+  /* ----------------------------------------
+     Navbar genre click handling
+     ---------------------------------------- */
+
   useEffect(() => {
     setSelectedGenre(urlGenre);
     setSearchInput("");
     setSearchQuery("");
     setPage(1);
   }, [urlGenre]);
+
+  /* ----------------------------------------
+     Handlers
+     ---------------------------------------- */
 
   const handleSearch = () => {
     setSearchQuery(searchInput);
@@ -94,6 +125,10 @@ export default function HomePage() {
   const handleViewDetails = (bookId) => {
     navigate(`/book/${bookId}`);
   };
+
+  /* ----------------------------------------
+     Render
+     ---------------------------------------- */
 
   return (
     <Box sx={{ width: "100%", p: 2 }}>
@@ -181,5 +216,3 @@ export default function HomePage() {
     </Box>
   );
 }
-
-

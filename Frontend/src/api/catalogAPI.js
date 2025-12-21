@@ -14,12 +14,13 @@ export async function listBooks({
                                     page = 0,
                                     size = 20,
                                     sort = "title",
+                                    order = "asc", 
                                     search = "",
                                     genre = ""
                                 }) {
     return axios
         .get(`${API_BASE_URL}/catalog/books`, {
-            params: { page, size, sort, search, genre }
+            params: { page, size, sort, order, search, genre }
         })
         .then(res => res.data)
         .catch(err => { throw err; });
