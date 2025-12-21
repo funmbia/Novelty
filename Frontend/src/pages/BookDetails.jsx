@@ -20,7 +20,7 @@ export default function BookDetailsPage() {
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [qty, setQty] = useState(1);
-    const { addToCart } = useCart();
+    const { addToCart, cartItems } = useCart();
 
     useEffect(() => {
         fetchBookById(bookId)
@@ -41,7 +41,19 @@ export default function BookDetailsPage() {
         );
     }
 
-    const increaseQty = () => setQty(qty + 1);
+    const cartItem = cartItems.find(
+        (i) => i.book.bookId === book.bookId
+    );
+
+    const quantityInCart = cartItem?.quantity ?? 0;
+    const remainingStock = book.quantity - quantityInCart;
+
+    const increaseQty = () => {
+        if (qty < remainingStock) {
+            setQty(qty + 1);
+        }
+    };
+
     const decreaseQty = () => setQty(Math.max(1, qty - 1));
 
 
@@ -134,7 +146,7 @@ export default function BookDetailsPage() {
                         </Typography>
 
                         {/* Dynamic Stock Indicator */}
-                        {renderStockStatus(book.quantity)}
+                        {renderStockStatus(remainingStock)}
 
                         {/* Quantity selector */}
                         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -157,6 +169,7 @@ export default function BookDetailsPage() {
                             <Button
                                 variant="outlined"
                                 onClick={increaseQty}
+                                disabled={qty >= remainingStock}
                                 sx={{
                                     minWidth: 40,
                                     fontSize: "1.2rem",
@@ -180,7 +193,7 @@ export default function BookDetailsPage() {
                                 variant="contained"
                                 size="large"
                                 onClick={() => addToCart(book, qty)}
-                                disabled={book.quantity === 0}
+                                disabled={remainingStock <= 0 || qty > remainingStock}
                                 sx={{
                                     flexGrow: { xs: 1, sm: 0 },
                                     borderRadius: "20px",
@@ -228,11 +241,10 @@ export default function BookDetailsPage() {
                                 Back to Catalog
                             </Button>
                         </Box>
-
-
                     </CardContent>
                 </Grid>
             </Grid>
         </Box>
     );
 }
+

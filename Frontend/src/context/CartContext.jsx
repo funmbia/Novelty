@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState} from "react";
 import { useAuth } from "./AuthContext";
 import {
     getCartByUserId,
@@ -9,6 +9,7 @@ import {
     clearCart as apiClearCart,
 } from "../api/cartApi";
 
+
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
@@ -17,8 +18,8 @@ const generateId = () =>
     crypto?.randomUUID?.() || Math.floor(Math.random() * 1_000_000_000);
 
 export function CartProvider({ children }) {
-    const { user } = useAuth();
-
+    const { user, cartReady } = useAuth();
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const userId = user?.userId ?? null;
     const authToken = user?.authToken ?? null;
 
@@ -28,11 +29,10 @@ export function CartProvider({ children }) {
     // LOAD CART (Backend if logged in, localStorage if guest)
     //----------------------------------------------------------
     useEffect(() => {
+        // Guest user
         if (!userId || !authToken) {
-            // Load guest cart
             const stored = localStorage.getItem("cart");
             const items = stored ? JSON.parse(stored) : [];
-
             setCartItems(
                 items.map((i) => ({
                     cartItemId: i.cartItemId || generateId(),
@@ -40,46 +40,25 @@ export function CartProvider({ children }) {
                     quantity: i.quantity,
                 }))
             );
-
             return;
         }
 
-        // Logged-in user → load backend cart
+        // Logged in but merge not finished → wait (except on refresh)
+        if (!cartReady && !isInitialLoad) return;
+
         (async () => {
             try {
                 const res = await getCartByUserId(userId, authToken);
                 setCartItems(res?.cart?.cartItemList ?? []);
-            } catch (err) {
-                console.warn("Cart not found → creating one automatically");
-
-                try {
-                    const created = await createCart(userId, authToken);
-                    setCartItems(created?.cart?.cartItemList ?? []);
-                } catch (innerErr) {
-                    console.error("Failed to create cart:", innerErr);
-                }
+            } catch {
+                const created = await createCart(userId, authToken);
+                setCartItems(created?.cart?.cartItemList ?? []);
+            } finally {
+                setIsInitialLoad(false);
             }
         })();
-    }, [userId, authToken]);
+    }, [userId, authToken, cartReady]);
 
-    //----------------------------------------------------------
-    // Handle forced reload after login merge
-    //----------------------------------------------------------
-    useEffect(() => {
-        const flag = localStorage.getItem("forceReloadCart");
-
-        if (userId && authToken && flag === "1") {
-            (async () => {
-                try {
-                    const res = await getCartByUserId(userId, authToken);
-                    setCartItems(res?.cart?.cartItemList ?? []);
-                } catch (err) {
-                    console.error("Forced reload failed:", err);
-                }
-                localStorage.removeItem("forceReloadCart");
-            })();
-        }
-    }, [userId, authToken]);
 
     //----------------------------------------------------------
     // Save guest cart to localStorage
@@ -109,9 +88,12 @@ export function CartProvider({ children }) {
                 );
 
                 if (existing) {
+                    const stock = book.quantity ?? 0;
+                    const newQty = Math.min(existing.quantity + qty, stock);
+
                     return prev.map((i) =>
                         i.book.bookId === book.bookId
-                            ? { ...i, quantity: i.quantity + qty }
+                            ? { ...i, quantity: newQty }
                             : i
                     );
                 }
@@ -126,8 +108,9 @@ export function CartProvider({ children }) {
                             author: book.author,
                             price: book.price,
                             imageUrl: book.imageUrl,
+                            quantity: book.quantity,
                         },
-                        quantity: qty,
+                        quantity: Math.min(qty, book.quantity ?? qty)
                     },
                 ];
             });
@@ -158,6 +141,9 @@ export function CartProvider({ children }) {
     const increaseQty = async (bookId, cartItemId) => {
         const item = cartItems.find((i) => i.cartItemId === cartItemId);
         if (!item) return;
+
+        const stock = item.book?.quantity ?? 0;
+        if (item.quantity >= stock) return;
 
         if (userId && authToken) {
             const res = await updateCartItemQuantity(

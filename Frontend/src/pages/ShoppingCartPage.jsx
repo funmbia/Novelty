@@ -175,6 +175,7 @@ export default function ShoppingCartPage() {
                                             </Typography>
 
                                             <IconButton
+                                                disabled={item.quantity >= item.book.quantity}    
                                                 onClick={() =>
                                                     increaseQty(item.book.bookId, item.cartItemId)
                                                 }

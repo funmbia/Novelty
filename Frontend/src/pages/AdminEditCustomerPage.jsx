@@ -556,9 +556,10 @@ export default function AdminEditCustomerPage() {
 
       </Paper>
 
-      <Box sx={{ mt: 4 }}>
+      {/* commented out for now */}
+      {/* <Box sx={{ mt: 4 }}>
        <Button onClick={handleDeleteCustomer} variant="contained" sx={errorButton}>Delete Customer</Button>
-      </Box>
+      </Box> */}
 
       {/* ------------ PASSWORD CHANGE MODAL ------------ */}
       <Dialog open={passwordModal} onClose={closePasswordModal} maxWidth="xs" fullWidth>

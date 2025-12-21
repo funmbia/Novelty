@@ -55,7 +55,7 @@ export default function OrderDetailsPage() {
     return (
         <Box
             sx={{
-                ml: { sm: "200px" },
+                //ml: { sm: "200px" },
                 px: { xs: 2, md: 6, lg: 10 },
                 py: 5,
                 display: "flex",

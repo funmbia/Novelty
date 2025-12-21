@@ -8,13 +8,26 @@ import {
   Box,
 } from "@mui/material";
 
+import { useCart } from "../context/CartContext";
+
 export default function BookCard({ book, onAddToCart, onViewDetails }) {
+  const { cartItems } = useCart();
+  const cartItem = cartItems.find(
+    (i) => i.book.bookId === book.bookId
+  );
+  const quantityInCart = cartItem?.quantity ?? 0;
+
+  const remainingStock = book.quantity - quantityInCart;
+
+  const isOutOfStock = remainingStock <= 0;
+  const isLowStock = remainingStock > 0 && remainingStock <= 5;
+
   return (
     <Card
       onClick={() => onViewDetails(book.bookId)}
       sx={{
         width: { xs: 170, sm: 200, md: 240, lg: 260, xl: 300 },
-        height: { xs: 330, sm: 360, md: 420, lg: 450, xl: 500 },
+        minHeight: { xs: 330, sm: 360, md: 420, lg: 450, xl: 500 },
         m: 1,
         cursor: "pointer",
         display: "flex",
@@ -29,7 +42,6 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
       }}
     >
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* Bigger images on desktop */}
         <CardMedia
           component="img"
           image={book.imageUrl}
@@ -37,6 +49,7 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           sx={{
             height: { xs: 160, sm: 180, md: 220, lg: 250, xl: 280 },
             objectFit: "cover",
+            filter: isOutOfStock ? "grayscale(60%)" : "none",
           }}
         />
 
@@ -65,6 +78,29 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           >
             ${book.price.toFixed(2)}
           </Typography>
+
+          {/* STOCK LABEL */}
+          <Box sx={{ minHeight: 18 }}>
+            {isOutOfStock && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block", fontWeight: 600 }}
+              >
+                Out of stock
+              </Typography>
+            )}
+
+            {isLowStock && (
+              <Typography
+                variant="caption"
+                color="warning.main"
+                sx={{ display: "block", fontWeight: 600 }}
+              >
+                Only {remainingStock} left
+              </Typography>
+            )}
+          </Box>
         </CardContent>
       </Box>
 
@@ -73,25 +109,26 @@ export default function BookCard({ book, onAddToCart, onViewDetails }) {
           size="small"
           variant="contained"
           fullWidth
+          disabled={isOutOfStock}
           onClick={(e) => {
             e.stopPropagation();
             onAddToCart(book);
           }}
           sx={{
             borderRadius: "20px",
-            backgroundColor: "#3f51b5",
+            backgroundColor: isOutOfStock ? "#9e9e9e" : "#3f51b5",
             textTransform: "none",
             fontWeight: "bold",
             py: 1,
             fontSize: { xs: "0.75rem", md: "0.9rem" },
             "&:hover": {
-              backgroundColor: "#303f9f",
-              transform: "scale(1.03)",
+              backgroundColor: isOutOfStock ? "#9e9e9e" : "#303f9f",
+              transform: isOutOfStock ? "none" : "scale(1.03)",
             },
             transition: "0.2s ease",
           }}
         >
-          Add to Cart
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </Button>
       </CardActions>
     </Card>

@@ -396,11 +396,16 @@ export default function CheckoutPage() {
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
+                    gap: 2,
                     mb: 2,
                   }}
                 >
                   <Typography>{item.book.title}</Typography>
-                  <Typography>
+                  <Typography
+                    sx={{
+                      whiteSpace: "nowrap", // 🔒 never wraps
+                    }}
+                  >
                     {item.quantity} × ${item.book.price.toFixed(2)}
                   </Typography>
                 </Box>

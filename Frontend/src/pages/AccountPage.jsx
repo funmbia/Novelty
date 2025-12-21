@@ -23,9 +23,9 @@ import {
 
 import { getAddressForUser, updateAddress } from "../api/addressApi";
 import {
-  getUserPaymentMethods,
-  deletePaymentMethod,
+  getUserDefaultPaymentMethod,
   addPaymentMethod,
+  setUserDefaultPaymentMethod
 } from "../api/paymentApi";
 import { updateUser } from "../api/userAPi";
 import { useAuth } from "../context/AuthContext";
@@ -117,15 +117,18 @@ export default function AccountPage() {
         }
 
         // Payment
-        const payRes = await getUserPaymentMethods(user.userId, user.authToken);
 
-        if (payRes.paymentMethodList?.length > 0) {
-          const card = payRes.paymentMethodList[0];
+        const defaultCard = await getUserDefaultPaymentMethod(
+          user.userId,
+          user.authToken
+        );
+
+        if (defaultCard) {
           setPayment({
             cardHolderName: `${user.firstName} ${user.lastName}`,
-            cardNumber: `**** **** **** ${card.cardLast4}`,
-            expiryMonth: card.expiryMonth,
-            expiryYear: card.expiryYear,
+            cardNumber: `**** **** **** ${defaultCard.cardLast4}`,
+            expiryMonth: defaultCard.expiryMonth,
+            expiryYear: defaultCard.expiryYear,
             cvv: "",
           });
         }
@@ -240,7 +243,7 @@ export default function AccountPage() {
     }
   };
 
-  // ✔ ADDRESS
+  // ADDRESS
   const handleSaveAddress = async () => {
     clearSection("address");
 
@@ -275,18 +278,23 @@ export default function AccountPage() {
     }
   };
 
-  // ✔ PAYMENT
+  // PAYMENT
+
   const handleSavePayment = async () => {
     clearSection("payment");
 
     const sectionErrors = {};
 
-    const raw = payment.cardNumber.startsWith("****")
-      ? null
-      : payment.cardNumber.replace(/\s+/g, "");
+    const isMasked = payment.cardNumber.startsWith("****");
+    const raw = isMasked ? null : payment.cardNumber.replace(/\s+/g, "");
 
-    if (raw && !isValidCardNumber(raw))
+    //Require new card number
+    if (!raw) {
+      sectionErrors.cardNumber =
+        "Please enter a new card number to update your payment method.";
+    } else if (!isValidCardNumber(raw)) {
       sectionErrors.cardNumber = "Invalid card number.";
+    }
 
     if (!isValidExpiry(payment.expiryMonth, payment.expiryYear)) {
       sectionErrors.expiryMonth = "Invalid expiry date.";
@@ -302,31 +310,35 @@ export default function AccountPage() {
     }
 
     try {
-      const existing = await getUserPaymentMethods(user.userId, user.authToken);
+      const last4 = raw.slice(-4);
 
-      if (existing.paymentMethodList?.length > 0) {
-        const old = existing.paymentMethodList[0];
-        await deletePaymentMethod(
-          old.paymentMethodId,
+      const newPm = {
+        cardLast4: last4,
+        cardBrand: detectCardBrand(raw),
+        expiryMonth: payment.expiryMonth,
+        expiryYear: payment.expiryYear,
+      };
+
+      // Add new card
+      const addRes = await addPaymentMethod(
+        user.userId,
+        newPm,
+        user.authToken
+      );
+
+      const newPaymentMethodId =
+        addRes.paymentMethod?.paymentMethodId;
+
+      // Make it default
+      if (newPaymentMethodId) {
+        await setUserDefaultPaymentMethod(
+          newPaymentMethodId,
           user.userId,
           user.authToken
         );
       }
 
-      const last4 = raw
-        ? raw.slice(-4)
-        : existing.paymentMethodList[0]?.cardLast4;
-
-      const newPm = {
-        cardLast4: last4,
-        cardBrand: detectCardBrand(raw || last4),
-        expiryMonth: payment.expiryMonth,
-        expiryYear: payment.expiryYear,
-        isDefault: true,
-      };
-
-      await addPaymentMethod(user.userId, newPm, user.authToken);
-
+      // Update UI
       setPayment({
         cardHolderName: payment.cardHolderName,
         cardNumber: `**** **** **** ${last4}`,
@@ -341,6 +353,7 @@ export default function AccountPage() {
       showMessage("Failed to update payment method.", "error");
     }
   };
+
 
   // --- Dropdown lists ---
   const months = Array.from({ length: 12 }, (_, i) =>

@@ -1,19 +1,8 @@
 import { createContext, useContext, useState } from "react";
 import { loginUser, registerUser } from "../api/authApi";
 import { addItemToCart } from "../api/cartApi";
-
+import { detectCardBrand } from "../utils/validation";
 const AuthContext = createContext();
-
-function detectCardBrand(number) {
-  if (!number) return "Unknown";
-
-  if (/^4/.test(number)) return "Visa";
-  if (/^5[1-5]/.test(number)) return "MasterCard";
-  if (/^3[47]/.test(number)) return "American Express";
-  if (/^6(?:011|5)/.test(number)) return "Discover";
-
-  return "Unknown";
-}
 
 export function AuthProvider({ children }) {
   // Load stored user
@@ -22,6 +11,7 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
+  const [cartReady, setCartReady] = useState(false);
 
   const login = async (email, password) => {
     try {
@@ -54,11 +44,8 @@ export function AuthProvider({ children }) {
 
         // Clear guest cart
         localStorage.removeItem("cart");
-
-        // Tell CartContext to reload backend cart
-        localStorage.setItem("forceReloadCart", "1");
       }
-
+      setCartReady(true);
       return { success: true };
     } catch (err) {
       throw new Error(err.response?.data?.message || "Login failed");
@@ -138,7 +125,7 @@ const updatePasswordInContext = (newPassword) => {
 };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout,   setUser,
+    <AuthContext.Provider value={{ user, cartReady, login, register, logout,   setUser,
   updatePasswordInContext }}>
       {children}
     </AuthContext.Provider>

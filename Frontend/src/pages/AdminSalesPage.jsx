@@ -206,7 +206,7 @@ export default function AdminSalesPage() {
       }}>
         <CircularProgress size={60} />
         <Typography variant="h6" color="text.secondary">
-          Loading orders... ({allOrders.length} orders loaded)
+          Loading orders...
         </Typography>
         <Box sx={{ width: "300px" }}>
           <LinearProgress />
@@ -283,13 +283,35 @@ export default function AdminSalesPage() {
 
       {/* Download Sales Report & Pagination Info */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
-        <Button
+        {/* <Button
           variant="contained"
           sx={primaryButton}
           onClick={() => generateSalesCSV(filteredOrders, filters)}
         >
           Download Sales Report (For Date Range)
+        </Button> */}
+
+        <Button
+          variant="contained"
+          sx={primaryButton}
+          onClick={() => {
+            if (!filters.fromDate || !filters.toDate) {
+              window.alert("Please select dates before downloading the sales report.");
+              return;
+            }
+
+            const confirmed = window.confirm(
+              `Download sales report for ${filters.fromDate} to ${filters.toDate}?`
+            );
+            if (confirmed) {
+              generateSalesCSV(filteredOrders, filters);
+            }
+          }}
+        >
+          Download Sales Report (For Date Range)
         </Button>
+
+
         
         <Typography variant="body2" sx={{ color: "gray" }}>
           Showing {paginatedOrders.length > 0 ? page * pageSize + 1 : 0} - {Math.min((page + 1) * pageSize, totalFilteredOrders)} of {totalFilteredOrders} orders
