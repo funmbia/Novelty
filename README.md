@@ -5,12 +5,14 @@
 - Git
 
 ---
-
+**Clone the repository**
+ ```bash
+   git clone https://github.com/gjergj753/EECS4413-Project.git
+```
 ### **Frontend (React)**
 
-1. **Clone the frontend repository**  
+1. **Change to the frontend directory**  
    ```bash
-   git clone https://github.com/gjergj753/EECS4413-Project.git
    cd Frontend
    ```
 
@@ -33,7 +35,7 @@
    ```bash
    cd backend
    ```
-3. Open MySQL command line or Workbench and run:
+3. **Open MySQL command line or Workbench and run**:
    
    ```bash
    -- Create database
@@ -47,7 +49,7 @@
    
    FLUSH PRIVILEGES;
    ```
-5. Configure Enviormental Variable:
+5. **Configure Enviormental Variable**:
    
    ```bash
    --Linux
@@ -58,17 +60,17 @@
    set DB_USER "your_bookstore_username"
    set DB_PASS "your_bookstore_password"
    ```
-7. Install Dependencies:
+7. **Install Dependencies**:
    
    ```bash
    mvn clean install
    ```
-9. Run the Backend:
+9. **Run the Backend**:
     
    ```bash
    mvn spring-boot:run
    ```
-11. Verify Backend is Running properly:
+11. **Verify Backend is Running properly**:
    ```bash
    curl http://localhost:2424/health
    ```
